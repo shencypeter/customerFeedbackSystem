@@ -1,0 +1,181 @@
+﻿@model BioMedDocManager.Models.DocControlMaintable
+@{
+    ViewData["Title"] = "文件管制-入庫";
+    Layout = "_NoNavLayout";//套用無Nav的Layout
+}
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]</h4>
+    <form id="myFormDetail" method="post" action="@Url.Action("StockIn", "CDocumentManage", new { IdNo = Model.IdNo})" target="_top">
+        @Html.AntiForgeryToken()
+        <div class="pop">
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.DateTime)：</strong></div>
+                <div class="col-md-4">
+                    <input id="DateTime" type="text" readonly class="form-control-plaintext" value="@(Model.DateTime?.ToString("yyyy-MM-dd") ?? "")" />
+                </div>
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.IdNo)：</strong></div>
+                <div class="col-md-4">@Html.DisplayFor(m => m.IdNo)</div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.PersonName)：</strong></div>
+                <div class="col-md-4">@Html.DisplayFor(m => m.PersonName)</div>
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    @if (Model.Type == "B")
+                    {
+                        <strong>@Html.LabelFor(m => m.OriginalDocNo)：</strong>
+                        <input type="hidden" id="IssueDatetime" value="@ViewBag.IssueDatetime" />
+                    }
+                    else
+                    {
+                        <strong>
+                            <span>原始編號：</span>
+                        </strong>
+                    }
+                </div>
+                <div class="col-md-4">@Html.DisplayFor(m => m.OriginalDocNo)</div>
+            </div>
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    @if (Model.Type == "B")
+                    {
+                        <strong>@Html.LabelFor(m => m.Name)：</strong>
+                    }
+                    else
+                    {
+                        <strong>文件名稱：</strong>
+                    }
+                </div>
+                <div class="col-md-10">@Html.DisplayFor(m => m.Name)</div>
+            </div>
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    @if (Model.Type == "B")
+                    {
+                        <strong>@Html.LabelFor(m => m.Purpose)：</strong>
+                    }
+                    else
+                    {
+                        <strong>內容簡述：</strong>
+                    }
+                </div>
+                <div class="col-md-10">@Html.DisplayFor(m => m.Purpose)</div>
+            </div>
+            <div class="row align-items-center my-3">
+                @if (Model.Type == "B")
+                {
+                    <div class="col-md-2 col-form-label text-md-end text-start">
+                        <strong>@Html.LabelFor(m => m.DocVer)：</strong>
+                    </div>
+                    <div class="col-md-4">@Html.DisplayFor(m => m.DocVer)</div>
+                }
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.ProjectName)：</strong></div>
+                <div class="col-md-@(Model.Type == "B" ? "4" : "10")">@Html.DisplayFor(m => m.ProjectName)</div>
+            </div>
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    @if (!Model.InTime.HasValue)
+                    {
+                        <span class="text-danger fw-bold">*</span>
+                    }
+                    <strong>@Html.LabelFor(m => m.InTime)：</strong>
+                </div>
+                <div class="col-md-10">
+                    <input type="date" id="InTime" name="InTime" class="form-control" @(Model.InTime.HasValue ? "" : "required") value="@(Model.InTime?.ToString("yyyy-MM-dd"))" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+                <label for="IsConfidential"
+                       class="col-md-2 col-form-label text-md-end text-start"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       data-bs-html="true"
+                       data-bs-custom-class="tooltip-left"
+                       title="<b>機密（Confidential）文件：</b>合約管理與客戶服務作業紀錄、製程、檢驗、設計、稽核、風險評估等相關三階工作指導書及四階品質紀錄文件(包含BMP-QP01程序書6.1.3內容所述方式之檔案)皆列為機密。">
+                    @if (!Model.InTime.HasValue)
+                    {
+                        <span class="text-danger fw-bold">*</span>
+                    }
+                    <strong>是否機密：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_DocumentClaimConfidentialSelect", Model.IsConfidential)
+                </div>
+
+                <label for="IsSensitive"
+                       class="col-md-2 col-form-label text-md-end text-start"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       data-bs-html="true"
+                       data-bs-custom-class="tooltip-left"
+                       title="<b>機敏（Sensitive）文件：</b>根據醫療器材品質管理系統準則第13條與個人資料保護法第6條，機敏健康資訊指與個人健康相關，需受特殊保護的資訊，包括但不限於「病歷、醫療、基因、性生活、健康檢查及犯罪前科」之個人資料。">
+                    @if (!Model.InTime.HasValue)
+                    {
+                        <span class="text-danger fw-bold">*</span>
+                    }
+                    <strong>是否機敏：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_DocumentClaimSensitiveSelect", Model.IsSensitive)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.InTimeModifyUser)：</strong></div>
+                <div class="col-md-4">@Html.DisplayFor(model => model.InTimeModifyUser.FullName)</div>
+                <div class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.LabelFor(m => m.InTimeModifyAt)：</strong></div>
+                <div class="col-md-4">@Html.DisplayFor(m => m.InTimeModifyAt)</div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-12 text-center">
+                    @if (Model.InTime.HasValue)
+                    {
+                        <p>*註：若入庫日期留空，則表示取消入庫。</p>
+                    }
+                </div>
+            </div>
+            <div class="row align-items-center my-3">
+                <!-- Bootstrap 警告區塊 -->
+                <div id="stockAlert" class="alert alert-danger mt-2" role="alert"></div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+                    <button id="StockInSubmitBtn" type="submit" class="btn2 btn-success mt-2 col-6 col-md-3 mx-1">
+                        <i class="fas fa-check-circle"></i>&ensp;儲存
+                    </button>
+                    <button type="button" class="btn2 btn-secondary mt-2 col-6 col-md-3 mx-1 clear_btn" data-form="myFormDetail">
+                        <i class="fas fa-eraser"></i>&ensp;清除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            formClearInputListener();// 清除按鈕事件監聽
+
+            $('#InTime').on('change', function () {
+                // 驗證：入庫日期 >= 表單發行日期
+                checkStockInTime('#IssueDatetime', '入庫日期不可早於表單發行日期!');
+
+                // 驗證：入庫日期 >= 領用日期
+                checkStockInTime('#DateTime', '入庫日期不可早於領用日期!');
+            });
+
+            $('#myFormDetail').on('submit', function (e) {
+                if (!checkStockInTime('#DateTime', '入庫日期不可早於領用日期!') && !checkStockInTime('#DateTime', '入庫日期不可早於領用日期!')) {
+                    e.preventDefault(); // 阻止送出
+                }
+            });
+
+            $("#stockAlert").hide();// 一開始先隱藏
+
+        });
+    </script>
+}

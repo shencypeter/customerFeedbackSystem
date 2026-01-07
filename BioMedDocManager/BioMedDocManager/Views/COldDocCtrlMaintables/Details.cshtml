@@ -1,0 +1,52 @@
+﻿@model BioMedDocManager.Models.OldDocCtrlMaintable
+@{
+    ViewData["Title"] = "2020年前表單查詢-檢視";
+    Layout = "_NoNavLayout";//套用無Nav的Layout
+}
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>@ViewData["Title"]</h4>
+
+    <div class="pop">
+
+        <div class="row align-items-center my-3">
+            <div class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.LabelFor(m => m.OriginalDocNo)：</strong>
+            </div>
+            <div class="col-md-4">
+                @Html.DisplayFor(m => m.OriginalDocNo)
+            </div>
+            <div class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.LabelFor(m => m.RecordName)：</strong>
+            </div>
+            <div class="col-md-4">
+                @Html.DisplayFor(m => m.RecordName)
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.LabelFor(m => m.Remarks)：</strong>
+            </div>
+            <div class="col-md-4">
+                @Html.DisplayFor(m => m.Remarks)
+            </div>
+            <div class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.LabelFor(m => m.ProjectName)：</strong>
+            </div>
+            <div class="col-md-4">
+                @Html.DisplayFor(m => m.ProjectName)
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.LabelFor(m => m.DateTime)：</strong>
+            </div>
+            <div class="col-md-4">
+                @Model.DateTime?.ToString("yyyy-MM-dd")
+            </div>
+        </div>
+
+
+    </div>
+</div>

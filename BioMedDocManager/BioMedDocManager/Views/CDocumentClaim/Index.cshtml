@@ -1,0 +1,279 @@
+﻿@{
+    ViewData["Title"] = "文件領用";
+    Layout = "_AssetLayout";
+
+    var FullName = User.FindFirst("FullName")?.Value;
+    var messages = ViewData["Messages"] as string;
+    var minDate = ViewData["TurnOffDate"] as DateOnly? ?? new DateOnly(2024, 4, 30);
+}
+
+<form action="@Url.Action("SubmitClaim")" method="post" id="singleForm">
+    @Html.AntiForgeryToken()
+
+    <div class="accordion" id="accordionForm">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingForm">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseForm" aria-expanded="true" aria-controls="collapseForm">
+                    <i class="fas fa-clipboard-list"></i>&ensp;領用文件填寫
+                </button>
+            </h2>
+            <div id="collapseForm" class="accordion-collapse collapse show" aria-labelledby="headingForm"
+                 data-bs-parent="#accordionForm">
+                <div class="accordion-body mx-3">
+
+                    <!-- Row A：領用日期 ＋ 文件類別 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-start form-grid-tight">
+                        <!-- 組1：領用日期 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="DateTime" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>領用日期：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="date" class="form-control" name="DateTime" id="DateTime"
+                                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                           min="@minDate.AddDays(1).ToString("yyyy-MM-dd")"
+                                           max="@DateTime.Today.ToString("yyyy-MM-dd")">
+                                    @if (!string.IsNullOrEmpty(messages))
+                                    {
+                                        <div class="form-text text-dark">@messages</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：文件類別 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">文件類別：</label>
+                                <div class="col-12 col-sm-8">
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="rdbtype_B" type="radio" value="B" name="rdbtype" checked />
+                                            <label class="form-check-label" for="rdbtype_B">廠內文件</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="rdbtype_E" type="radio" value="E" name="rdbtype" />
+                                            <label class="form-check-label" for="rdbtype_E">外來文件</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row B：領用人 ＋ 專案代碼 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-start form-grid-tight">
+                        <!-- 組1：領用人 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_person_id" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>領用人：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @*負責人才顯示領用人下拉式選單*@
+                                    @if (User.IsInRole(BaseController.DocRoleStrings.負責人))
+                                    {
+                                        @await Html.PartialAsync("_DocUserSelect", User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value)
+                                    }
+                                    else
+                                    {
+                                        <input type="text" class="form-control" id="txt_person_id" name="txt_person_id" value="@FullName" readonly />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：專案代碼 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_project_name" class="col-12 col-sm-4 col-form-label text-sm-end text-start">專案代碼：</label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text" class="form-control" id="txt_project_name" name="txt_project_name" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row C（B 區）：下一組文件號 ＋ 表單編號 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-start form-grid-tight BDiv">
+                        <!-- 組1：下一組文件號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_nextIdNo" class="col-12 col-sm-4 col-form-label text-sm-end text-start">下一組文件號：</label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text" class="form-control" id="txt_nextIdNo" name="txt_nextIdNo" value="@ViewBag.DocNumber" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：表單編號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_Boriginal_doc_no" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>表單編號：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <div class="input-group">
+                                        <input type="hidden" class="form-control" id="txt_BissueDatetime" />
+                                        <input type="text" class="form-control" id="txt_Boriginal_doc_no" name="txt_Boriginal_doc_no" />
+                                        <a class="btn btn-sm btn-secondary doc_tree_search_btn" target="_blank" href='@Url.Action("Index", "Tree")'>
+                                            <i class="fas fa-project-diagram"></i>&ensp;查詢
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row D（B 區）：表單版次 ＋ 紀錄名稱 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-start form-grid-tight BDiv">
+                        <!-- 組1：表單版次 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_Bdoc_ver" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>表單版次：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text" class="form-control" id="txt_Bdoc_ver" name="txt_Bdoc_ver" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：紀錄名稱 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-start">
+                                <label for="txt_Bname" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>紀錄名稱：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <textarea class="form-control" id="txt_Bname" name="txt_Bname" rows="2" readonly></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row E（B 區）：領用目的（單組） -->
+                    <div class="row mb-3 g-3 align-items-start form-grid-tight BDiv">
+                        <label for="txt_Bpurpose" class="col-12 col-md-2 col-sm-4 col-form-label text-sm-end text-start">
+                            <span class="text-danger fw-bold">*</span>領用目的：
+                        </label>
+                        <div class="col-12 col-md-10 col-sm-8">
+                            <textarea class="form-control" id="txt_Bpurpose" name="txt_Bpurpose" rows="4"
+                                      placeholder="請輸入領用此文件表單目的..."></textarea>
+                        </div>
+                    </div>
+
+
+                    <!-- Row F（E 區）：下一組文件號 ＋ 文件名稱 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-start form-grid-tight EDiv">
+                        <!-- 組1：下一組文件號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_nextIdNo_E" class="col-12 col-sm-4 col-form-label text-sm-end text-start">下一組文件號：</label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text" class="form-control" id="txt_nextIdNo_E" name="txt_nextIdNo" value="@ViewBag.DocNumber" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：文件名稱 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="txt_Ename" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>文件名稱：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text" class="form-control" id="txt_Ename" name="txt_Ename" value="" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row G（E 區）：原始編號（單組） -->
+                    <div class="row mb-3 g-3 row-cols-1 align-items-start form-grid-tight EDiv">
+                        <div class="col">
+                            <div class="row g-2 align-items-start">
+                                <label for="txt_Eoriginal_doc_no" class="col-12 col-md-2 col-sm-4 col-form-label text-sm-end text-start">原始編號：</label>
+                                <div class="col-12 col-md-10 col-sm-8">
+                                    <textarea class="form-control" id="txt_Eoriginal_doc_no" name="txt_Eoriginal_doc_no" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row H（E 區）：內容簡述（單組） -->
+                    <div class="row mb-3 g-3 row-cols-1 align-items-start form-grid-tight EDiv">
+                        <div class="col">
+                            <div class="row g-2 align-items-start">
+                                <label for="txt_Epurpose" class="col-12 col-md-2 col-sm-4 col-form-label text-sm-end text-start">
+                                    <span class="text-danger fw-bold">*</span>內容簡述：
+                                </label>
+                                <div class="col-12 col-md-10 col-sm-8">
+                                    <textarea class="form-control" id="txt_Epurpose" name="txt_Epurpose" rows="4"
+                                              placeholder="簡述文件的用途或相關資訊..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 送出 -->
+                    <div class="row mb-3">
+                        <div class="col-12 d-flex justify-content-center flex-wrap gap-2">
+                            <button type="submit"
+                                    id="btnSend"
+                                    class="btn2 btn-primary mt-2 col-6 col-md-3 mx-1">
+                                <i class="fas fa-pen-to-square me-1"></i> 領用
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section PageScripts {
+
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            // Hide EDivs initially
+            $(".EDiv").hide();
+            
+            if (window.self !== window.top) {
+                // 預覽領用訊息不可以跟表單互動
+                $('#singleForm :input').prop('disabled', true);
+
+                     $('#cancelPreview').removeClass('d-none');
+            }
+
+            $(document).on("change", "input[name='rdbtype']", function () {
+                let val = $(this).val(); // 會是 "B" 或 "E"
+                CDocumentClaimAndReserve_ChangerdBType(val);
+            });
+
+            // Handle form submission via AJAX
+            $("#singleForm").on("submit", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const form = this;
+                const submitBtn = $("#btnSend");
+                const url = '@Url.Action("SubmitClaim")';
+
+                CDocumentClaimAndReserve_SubmitForm(form, url, submitBtn);
+            });
+
+            $('#DateTime').on('change', function () {
+                getDocumentClaimNumber();
+            });
+
+            $('#rdbtype_B, #rdbtype_E').on('click', function () {
+                getDocumentClaimNumber();
+            });
+
+        });
+    </script>
+}

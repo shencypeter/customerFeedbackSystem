@@ -1,0 +1,53 @@
+﻿@model BioMedDocManager.Models.PurchaseRecord
+@{
+    Layout = "_NoNavLayout";
+    var message = TempData["alert_danger"]?.ToString();
+}
+
+<div class="m-4">
+    <form id="myFormDetail" method="post" action="@Url.Action("ReturnOrder", "PAcceptance", new { id = Model.RequestNo })">
+        @Html.AntiForgeryToken()
+
+        <h4 class="mt-3 px-2"><i class="bi bi-search me-2"></i>請購紀錄</h4>
+        <div class="pop">
+            @* 請購詳細資料 *@
+            @await Html.PartialAsync("_PurchaseDetail", Model)
+        </div>
+
+        <hr class="my-4" />
+
+        <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>驗收紀錄</h4>
+        <div class="pop">
+            @* 驗收詳細資料 *@
+            @await Html.PartialAsync("_PurchaseAssessmentDetail", Model)
+
+            @*
+            ** 先不要設限這麼多 **
+            評核人 或 自己是驗收人，可以編輯，否則只能看其他人資料(檢視)
+            @if (User.IsInRole(BaseController.PurchaseRoleStrings.評核人) || Model.VerifyPerson == ViewData["LoginUserId"].ToString())
+            {
+            *@
+            <!-- 按鈕區塊 -->
+            <div class="row align-items-center my-3">
+                <div class="col-md-12 d-flex justify-content-center">
+                    <button id="btn-return-order" type="submit" class="btn2 btn-secondary mt-2 col-6 col-md-3 mx-1">
+                        <i class="fas fa-undo-alt me-1"></i>退貨
+                    </button>
+                </div>
+            </div>
+            @* } *@
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            $('#btn-return-order').on('click', function (e) {
+                if (!confirm('請確認是否退貨?')) {
+                    e.preventDefault(); // 阻止送出
+                }
+            });
+        });
+    </script>
+}

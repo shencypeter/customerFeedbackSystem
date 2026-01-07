@@ -1,0 +1,92 @@
+﻿@using BioMedDocManager.Models
+@model ProductClass
+@{
+    Layout = "_NoNavLayout";
+    ViewData["Title"] = "品項選單維護-編輯";
+
+    var classEnabled = "bi bi-toggle-on text-success";
+    var classDisabled = "bi bi-toggle-off text-secondary";
+}
+
+<div class="m-4">
+    <form id="myFormDetail" method="post" action="@Url.Action("Edit", "PProductClass", new { ProductClass = Model.ProductClass1 })">
+        @Html.AntiForgeryToken()
+        <h4 class="m-3 px-2"><i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]</h4>
+
+        <div class="row align-items-center my-3">
+            <label class="col-sm-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => Model.SupplierClass)：</strong>
+            </label>
+            <div class="col-sm-10">
+                <div class="form-control-plaintext">@Model.SupplierClass</div>
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <label class="col-sm-2 col-form-label text-md-end text-start" for="@nameof(Model.ProductClass1)">
+                <strong>@Html.DisplayNameFor(m => Model.ProductClass1)：</strong>
+            </label>
+            <div class="col-sm-10">
+                <div>@Model.ProductClass1</div>
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <label class="col-sm-2 col-form-label text-md-end text-start" for="@nameof(Model.ProductClassTitle)">
+                <strong>@Html.DisplayNameFor(m => Model.ProductClassTitle)：</strong>
+            </label>
+            <div class="col-sm-10">
+                <div class="input-group">
+                    <!-- fixed width like other fields -->
+                    <input type="text"
+                           id="@nameof(Model.ProductClassTitle)"
+                           name="@nameof(Model.ProductClassTitle)"
+                           value="@Model.ProductClassTitle"
+                           class="form-control"
+                           aria-describedby="productClassTitleHelp" />
+
+                    <!-- Inline toggle button -->
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            id="toggleDisabledText"
+                            title="切換停用狀態">
+                        <i class="bi @(Model.ProductClassTitle?.Contains("停用") == true ? classDisabled : classEnabled)"></i> 啟用
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-sm-2 col-form-label text-md-end text-start">
+                <strong>備註：</strong>
+            </div>
+            <div class="col-sm-10">
+                若品項名稱包含「<span class="text-danger">停用</span>」二字，則於所有採購系統中的「新增」功能會隱藏該品項選項；
+                <br />
+                各頁面查詢條件不影響，仍會顯示所有選項。
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+                <button type="submit" class="btn2 btn-success mt-2 col-6 col-md-3 mx-1">
+                    <i class="fas fa-check-circle me-1"></i> 更新品項說明
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        (function () {
+            toggleDisabledText(
+                "#@nameof(Model.ProductClassTitle)",
+                "#toggleDisabledText",
+                "停用",
+                "@classEnabled",
+                "@classDisabled"
+            );
+        })();
+    </script>
+}

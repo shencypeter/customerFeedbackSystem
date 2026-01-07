@@ -1,0 +1,166 @@
+﻿@model List<Dictionary<string,object>>
+@{
+    Layout = "_NoNavLayout";
+    ViewData["Title"] = "請購-請購編號查詢";
+
+    var queryModel = QueryableExtensions.GetSessionQueryModel<Pagination>(Context);
+
+    var headers = ViewData["tableHeaders"] as Dictionary<string, string> ?? new Dictionary<string, string>();
+
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>@ViewData["Title"]</h4>
+    <div class="pop">
+        <div class="row align-items-center my-3">
+            <div class="col-md-12">
+                <input type="text" id="searchInput" class="form-control bg-info bg-gradient bg-opacity-25" placeholder="搜尋：文件編號 或 領用目的">
+            </div>
+        </div>
+        <div class="row align-items-center my-3">
+            <div class="col-md-12">
+                *僅顯示BMP-QP09-TR001表單之文件
+            </div>
+        </div>
+
+        <form method="get" id="myForm" class="px-5">
+            <!-- Hidden fields -->
+            <input type="hidden" id="@(nameof(queryModel.OrderBy))" name="@(nameof(queryModel.OrderBy))" value="@queryModel.OrderBy" />
+            <input type="hidden" id="@(nameof(queryModel.SortDir))" name="@(nameof(queryModel.SortDir))" value="@queryModel.SortDir" />
+            <input type="hidden" id="@nameof(queryModel.PageSize)" name="@nameof(queryModel.PageSize)" value="@queryModel.PageSize" />
+            @* <input type="hidden" id="@nameof(queryModel.PageNumber)" name="@nameof(queryModel.PageNumber)" value="@queryModel.PageNumber" /> *@
+        </form>
+
+        <table class="table table-hover" id="myTable">
+            <thead>
+                <tr>
+                    @foreach (var item in headers)
+                    {
+                        <th data-id="@item.Key">
+                            @if (item.Key != "RowNum")
+                            {
+                                <a href="#" title="點選「@(item.Value)」欄位進行排序"> @item.Value </a>
+                            }
+                            else
+                            {
+                                @Html.Raw(item.Value)
+                            }
+                            <span class="order-index"> @(queryModel.OrderBy.EndsWith(item.Key) ? (queryModel.SortDir == "asc" ? "▲" : "▼") : "")</span>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="@(headers.Count)">查無資料</td>
+                    </tr>
+                }
+
+                @foreach (var row in Model)
+                {
+                    var keys = row.Keys;
+                    <tr>
+                        @foreach (var key in keys)
+                        {
+                            if (!headers.ContainsKey(key))
+                            {
+                                continue;
+                            }
+
+                            string value = TableHelper.FormatValue(row[key]);
+
+                            var classes = new List<string>();
+
+                            if (key == "RowNum")
+                            {
+                                classes.Add("col-rownum");
+                            }
+
+                            if (key == "person_name")
+                            {
+                                classes.Add("text-nowrap");
+                            }
+
+                            if (value == "(無)")
+                            {
+                                classes.Add("none-data"); // 會包含置中
+                            }
+                            else
+                            {
+                                if (decimal.TryParse(value, out _))
+                                {
+                                    classes.Add("text-end"); // 右對齊（Bootstrap）
+                                }
+                                if (value == "未入庫")
+                                {
+                                    classes.Add("val-not-in");
+                                }
+                            }
+
+                            @if (key == "id_no")
+                            {
+                                <td class="text-nowrap"><a href="#" class="copyable" data-copy="@value">@value</a></td>
+                            }
+                            else
+                            {
+                                <td class="@string.Join(" ", classes)">
+                                    @Html.Raw(value)
+                                </td>
+                            }
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* 分頁會影響searchInput搜尋，所以不分頁了
+@await Html.PartialAsync("_PagerSection", queryModel)
+*@
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+
+            tableSortListener("myForm");// 表格排序事件監聽
+
+            // 聚焦搜尋框
+            setTimeout(function(){
+                $("#searchInput").focus();
+            },500);
+
+            var debounceTimer;
+
+            $('#searchInput').on('keyup', function (e) {
+                // 若按下Enter鍵（keyCode 13）
+                if (e.key === 'Enter') {
+                    clearTimeout(debounceTimer);
+                    filterTableByKeyword('#searchInput', '#myTable');
+                    return;
+                }
+
+                // 否則啟用debounce延遲搜尋
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function () {
+                    filterTableByKeyword('#searchInput', '#myTable');
+                }, 1000); // 1秒延遲
+            });
+
+            // 使用者離開輸入框時，也立即觸發篩選
+            $('#searchInput').on('blur', function () {
+                clearTimeout(debounceTimer);
+                filterTableByKeyword('#searchInput', '#myTable');
+            });
+
+
+            $(".copyable").on("click", function(e) {
+                e.preventDefault();
+                var textToCopy = $(this).data("copy");
+                setParentInput("RequestNo", textToCopy);
+            });
+        });
+    </script>
+}

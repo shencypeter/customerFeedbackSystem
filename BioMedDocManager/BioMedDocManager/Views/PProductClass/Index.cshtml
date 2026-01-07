@@ -1,0 +1,200 @@
+﻿@model IEnumerable<Dictionary<string,object>>
+@{
+    ViewData["Title"] = "電子採購";
+    Layout = "_AssetLayout";
+
+    var queryModel = QueryableExtensions.GetSessionQueryModel<ProductClassQueryModel>(Context);
+    queryModel.OrderBy ??= "product_class";
+
+    var headers = ViewData["tableHeaders"] as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<form method="post" id="myForm">
+    @Html.AntiForgeryToken()
+    <div class="accordion" id="queryAccordion">
+        <div class="accordion-item border border-secondary-subtle bg-light">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseOne"
+                        aria-expanded="false"
+                        aria-controls="collapseOne">
+                    <i class="fa fa-search me-2"></i>&ensp;查詢條件
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show"
+                 aria-labelledby="headingOne" data-bs-parent="#queryAccordion">
+                <div class="accordion-body mx-3">
+
+                    <!-- Row 1：供應商分類 / 品項編號 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：供應商分類 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.SupplierClass)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    供應商分類：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @* 直接呼叫就好，選項寫在裡面了 *@
+                                    @await Html.PartialAsync("_PurchaseSupplierClassSelect", queryModel.SupplierClass)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：品項編號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.ProductClass)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    品項編號：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @await Html.PartialAsync("_PurchaseProductClassSelect", queryModel.ProductClass)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2：品項名稱 / 是否停用 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：品項名稱 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.ProductClassTitle)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    品項名稱：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text"
+                                           id="@nameof(queryModel.ProductClassTitle)"
+                                           name="@nameof(queryModel.ProductClassTitle)"
+                                           value="@queryModel.ProductClassTitle"
+                                           class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：是否停用 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.IsEnabled)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    是否停用：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <select id="@nameof(queryModel.IsEnabled)" name="@nameof(queryModel.IsEnabled)" class="form-select">
+                                        <option value="" selected="@(string.IsNullOrEmpty(queryModel.IsEnabled) ? "selected" : null)">全部</option>
+                                        <option value="啟用" selected="@(queryModel.IsEnabled == "啟用" ? "selected" : null)">啟用</option>
+                                        <option value="停用" selected="@(queryModel.IsEnabled == "停用" ? "selected" : null)">停用</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-center flex-wrap gap-2">
+
+                                <button type="submit" formaction="@Url.Action("Index")"
+                                        class="btn2 btn-primary search_btn">
+                                    <i class="fa fa-search"></i>&ensp;查詢
+                                </button>
+
+                                <button type="submit" formaction="@Url.Action("GetExcel")"
+                                        formtarget="_blank"
+                                        class="btn2 btn-success export_btn">
+                                    <i class="fa fa-file-export"></i>&ensp;匯出 Excel
+                                </button>
+
+                                <button type="button" class="btn2 btn-secondary clear_btn" data-form="myForm">
+                                    <i class="fa fa-eraser"></i>&ensp;清除
+                                </button>
+
+                                <a id="create_btn" href="@Url.Action("Create")"
+                                   class="btn2 btn-info">
+                                    <i class="fa fa-plus"></i>&ensp;新增品項
+                                </a>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="@(nameof(queryModel.OrderBy))" name="@nameof(queryModel.OrderBy)" value="@queryModel.OrderBy" />
+                    <input type="hidden" id="@(nameof(queryModel.SortDir))" name="@nameof(queryModel.SortDir)" value="@queryModel.SortDir" />
+                    <input type="hidden" id="@nameof(queryModel.PageSize)" name="@nameof(queryModel.PageSize)" value="@queryModel.PageSize" />
+                    <input type="hidden" id="@nameof(queryModel.PageNumber)" name="@nameof(queryModel.PageNumber)" value="@queryModel.PageNumber" />
+
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="table">
+    <table class="table table-striped table-hover table-bordered text-break" id="myTable">
+        <thead>
+            <tr>
+                @foreach (var item in headers)
+                {
+                    if (!headers.ContainsKey(item.Key))
+                    {
+                        continue;
+                    }
+
+                    <th data-id="@item.Key">
+                        @if (item.Key != "RowNum")
+                        {
+                            <a href="#" title="點選「@(item.Value)」欄位進行排序"> @item.Value </a>
+                        }
+                        else
+                        {
+                            @item.Value
+                        }
+                        <span class="order-index"> @(queryModel.OrderBy.EndsWith(item.Key) ? (queryModel.SortDir == "asc" ? "▲" : "▼") : "")</span>
+                    </th>
+                }
+                <th class="col-actions">功能</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="@(headers.Count + 1)">查無資料</td>
+                </tr>
+            }
+
+            @foreach (var row in Model)
+            {
+                var keys = row.Keys;
+                <tr>
+                    @foreach (var key in keys)
+                    {
+                        if (!headers.ContainsKey(key))
+                        {
+                            continue;
+                        }
+
+                        string value = TableHelper.FormatValue(row[key]);
+
+                        <td class="@(value == "(無)" ? "none-data" : "") @(value == "停用" ? "text-danger" : "") @((key == "RowNum") ? "text-nowrap" : "")">
+                            @Html.Raw(value)
+                        </td>
+                    }
+                    <td class="col-actions">
+                        <a class="btn btn-sm btn-outline-primary detail" href="@Url.Action("Edit", "PProductClass", new { ProductClass = row["product_class"] })" target="_blank">編輯</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@await Html.PartialAsync("_PagerSection", queryModel)
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+
+    </script>
+}

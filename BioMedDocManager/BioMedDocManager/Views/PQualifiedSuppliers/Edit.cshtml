@@ -1,0 +1,110 @@
+﻿@model BioMedDocManager.Models.QualifiedSupplier
+@{
+    ViewData["Title"] = "供應商清冊-編輯";
+    Layout = "_NoNavLayout";
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]</h4>
+
+    <form id="myFormDetail" method="post" action="@Url.Action("Edit", new { SupplierName=Model.SupplierName, ProductClass=Model.ProductClass})">
+        @Html.AntiForgeryToken()
+        <div class="pop">
+            @* Row 1 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductClass)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.ProductClass)</div>
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Supplier1stAssessDate)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.Supplier1stAssessDate)</div>
+                </div>
+            </div>
+
+            @* Row 2 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.SupplierName)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.SupplierName)</div>
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ReassessDate)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.ReassessDate)</div>
+                </div>
+            </div>
+
+            @* Row 3 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.SupplierNo)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="SupplierNo" class="form-control" />
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.SupplierClass)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.SupplierClass)</div>
+                </div>
+            </div>
+
+            @* Row 4 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Tele)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="Tele" class="form-control" />
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductClassTitle)：</strong></label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Html.DisplayFor(m => m.ProductClass) @Html.DisplayFor(m => m.ProductClassTitle)</div>
+                </div>
+            </div>
+
+            @* Row 5 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Tele2)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="Tele2" class="form-control" />
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Remarks)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+
+            @* Row 6 *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Fax)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="Fax" class="form-control" />
+                </div>
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Address)：</strong></label>
+                <div class="col-md-4">
+                    <input asp-for="Address" class="form-control" />
+                </div>
+            </div>
+
+            @* Row 7 (Full width for long field) *@
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.SupplierInfo)：</strong></label>
+                <div class="col-md-10">
+                    <input asp-for="SupplierInfo" class="form-control" />
+                </div>
+            </div>
+
+            @* Buttons *@
+            <div class="row align-items-center my-3">
+                <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+                    <button type="submit" class="btn2 btn-success mt-2 col-6 col-md-3 mx-1">
+                        <i class="fas fa-circle-check me-1"></i>存檔
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+
+    </script>
+}

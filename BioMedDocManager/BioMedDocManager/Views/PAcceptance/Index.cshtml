@@ -1,0 +1,318 @@
+﻿@using System.Text.Json
+@model IEnumerable<Dictionary<string,object>>
+@{
+    ViewData["Title"] = "電子採購";
+    Layout = "_AssetLayout";
+
+    var queryModel = QueryableExtensions.GetSessionQueryModel<PurchaseQueryModel>(Context);
+
+    //assign default if null
+    queryModel.OrderBy = queryModel.OrderBy ?? "request_date";
+
+    var headers = ViewData["tableHeaders"] as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<form method="post" id="myForm">
+    @Html.AntiForgeryToken()
+    <div class="accordion" id="accordionExample">
+        <div class="accordion-item bg-light">
+            <h2 class="accordion-header" id="flush-headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                    <i class="fa fa-search"></i>&ensp;關鍵字搜尋
+                </button>
+            </h2>
+            <div id="flush-collapseOne" class="accordion-collapse collapse show" aria-labelledby="flush-headingOne"
+                 data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body mx-3">
+
+                    <!-- Row 1：請購人 / 請購編號 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：請購人 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.Requester)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    請購人：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @await Html.PartialAsync("_PurchaseRequesterSelect", queryModel.Requester)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：請購編號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.RequestNo)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    請購編號：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <div class="input-group">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="@nameof(queryModel.RequestNo)"
+                                               name="@nameof(queryModel.RequestNo)"
+                                               value="@queryModel.RequestNo" />
+                                        <a href="@Url.Action("DocSearchAllModal", "PPurchaseTables")"                                           
+                                           target="_blank"
+                                           class="docSearch btn btn-outline-secondary"
+                                           aria-label="開啟請購編號查詢">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2：採購人 / 收貨驗收編號 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：採購人 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.Purchaser)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    採購人：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @await Html.PartialAsync("_PurchasePurchaserSelect", queryModel.Purchaser)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：收貨驗收編號 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.ReceiveNumber)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    收貨驗收編號：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <div class="input-group">
+                                        <input type="text"
+                                               id="@nameof(queryModel.ReceiveNumber)"
+                                               name="@nameof(queryModel.ReceiveNumber)"
+                                               value="@queryModel.ReceiveNumber"
+                                               class="form-control" />
+                                        <a href="@Url.Action("DocSearchAllModal", "PAcceptance")"
+                                           target="_blank"
+                                           class="docSearch btn btn-outline-secondary"
+                                           aria-label="開啟收貨驗收編號查詢">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3：收貨人 / 收貨日期 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：收貨人 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.ReceivePerson)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    收貨人：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @await Html.PartialAsync("_PurchaseReceivePersonSelect", queryModel.ReceivePerson)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：收貨日期 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start" for="@nameof(queryModel.DeliveryDateStart)">
+                                    收貨日期：
+                                </label>
+
+                                <div class="col-12 col-sm-8">
+                                    <div class="row g-2 align-items-center">
+                                        <!-- 起 -->
+                                        <div class="col-12 col-lg-6">
+                                            <div class="input-group">
+                                                <input type="date"
+                                                       id="@nameof(queryModel.DeliveryDateStart)"
+                                                       name="@nameof(queryModel.DeliveryDateStart)"
+                                                       value="@(queryModel.DeliveryDateStart?.ToString("yyyy-MM-dd"))"
+                                                       class="form-control"
+                                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                <label class="input-group-text py-1" for="@nameof(queryModel.DeliveryDateStart)">起</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- 止 -->
+                                        <div class="col-12 col-lg-6">
+                                            <div class="input-group">
+                                                <input type="date"
+                                                       id="@nameof(queryModel.DeliveryDateEnd)"
+                                                       name="@nameof(queryModel.DeliveryDateEnd)"
+                                                       value="@(queryModel.DeliveryDateEnd?.ToString("yyyy-MM-dd"))"
+                                                       class="form-control"
+                                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                <label class="input-group-text py-1" for="@nameof(queryModel.DeliveryDateEnd)">止</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Row 4：驗收人 / 驗收日期 -->
+                    <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
+
+                        <!-- 組1：驗收人 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label for="@nameof(queryModel.VerifyPerson)" class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    驗收人：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    @await Html.PartialAsync("_PurchaseVerifyPersonSelect", queryModel.VerifyPerson)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組2：驗收日期 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start" for="@nameof(queryModel.VerifyDateStart)">
+                                    驗收日期：
+                                </label>
+
+                                <div class="col-12 col-sm-8">
+                                    <div class="row g-2 align-items-center">
+                                        <!-- 起 -->
+                                        <div class="col-12 col-lg-6">
+                                            <div class="input-group">
+                                                <input type="date"
+                                                       class="form-control"
+                                                       id="@nameof(queryModel.VerifyDateStart)"
+                                                       name="@nameof(queryModel.VerifyDateStart)"
+                                                       value="@(queryModel.VerifyDateStart?.ToString("yyyy-MM-dd"))"
+                                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                <label class="input-group-text py-1" for="@nameof(queryModel.VerifyDateStart)">起</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- 止 -->
+                                        <div class="col-12 col-lg-6">
+                                            <div class="input-group">
+                                                <input type="date"
+                                                       class="form-control"
+                                                       id="@nameof(queryModel.VerifyDateEnd)"
+                                                       name="@nameof(queryModel.VerifyDateEnd)"
+                                                       value="@(queryModel.VerifyDateEnd?.ToString("yyyy-MM-dd"))"
+                                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                <label class="input-group-text py-1" for="@nameof(queryModel.VerifyDateEnd)">止</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="row mb-3">
+                        <div class="col-12 d-flex justify-content-center flex-wrap gap-2">
+
+                            <button type="submit" formaction="@Url.Action("Index")"
+                                    class="btn2 btn-primary search_btn">
+                                <i class="fa fa-search"></i>&ensp;查詢
+                            </button>
+
+                            <button type="submit" formaction="@Url.Action("GetExcel")"
+                                    formtarget="_blank"
+                                    class="btn2 btn-success export_btn">
+                                <i class="fa fa-file-export"></i>&ensp;匯出 Excel
+                            </button>
+
+                            <button type="button" class="btn2 btn-secondary clear_btn" data-form="myForm">
+                                <i class="fa fa-eraser"></i>&ensp;清除
+                            </button>
+
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="@(nameof(queryModel.OrderBy))" name="@nameof(queryModel.OrderBy)" value="@queryModel.OrderBy" />
+                    <input type="hidden" id="@(nameof(queryModel.SortDir))" name="@nameof(queryModel.SortDir)" value="@queryModel.SortDir" />
+                    <input type="hidden" id="@nameof(queryModel.PageSize)" name="@nameof(queryModel.PageSize)" value="@queryModel.PageSize" />
+                    <input type="hidden" id="@nameof(queryModel.PageNumber)" name="@nameof(queryModel.PageNumber)" value="@queryModel.PageNumber" />
+
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="table">
+    <table class="table table-striped table-hover table-bordered text-break" id="myTable">
+        <thead>
+            <tr>
+                @foreach (var item in headers)
+                {
+                    <th data-id="@item.Key">
+                        @if (item.Key != "RowNum")
+                        {
+                            <a href="#" title="點選「@(item.Value)」欄位進行排序"> @item.Value </a>
+                        }
+                        else
+                        {
+                            @item.Value
+                        }
+                        <span class="order-index"> @(queryModel.OrderBy.EndsWith(item.Key) ? (queryModel.SortDir == "asc" ? "▲" : "▼") : "")</span>
+                    </th>
+                }
+                <th class="col-actions">功能</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="@(headers.Count + 1)">查無資料</td>
+                </tr>
+            }
+
+            @foreach (var row in Model)
+            {
+                var keys = row.Keys;
+                <tr>
+                    @foreach (var key in keys)
+                    {
+                        string value = TableHelper.FormatValue(row[key]);
+
+                        <td class="@(value == "(無)" ? "none-data" : "") @((key == "RowNum") ? "text-nowrap" : "")">
+                            @Html.Raw(value)
+                        </td>
+                    }
+
+                    <td class="col-actions">
+                        @if (row["verify_date"] == null)
+                        {
+                            <a class="btn btn-sm btn-outline-primary detail" href="@Url.Action("Verify", "PAcceptance", new { RequestNo = row["request_no"] })">收貨並驗收</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-outline-secondary detail" href="@Url.Action("Details", "PAcceptance", new { RequestNo = row["request_no"] })" target="_blank">檢視</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@await Html.PartialAsync("_PagerSection", queryModel)
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        docSearchBtnListenerModal();// 請購編號查詢按鈕事件監聽
+    </script>
+}
