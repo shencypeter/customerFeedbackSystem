@@ -361,5 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/BioMedDocManager/BioMedDocManager/appsettings.json
-/BioMedDocManager/BioMedDocManager/.config/dotnet-tools.json
+/CustomerFeedbackSystem/CustomerFeedbackSystem/appsettings.json
+/CustomerFeedbackSystem/CustomerFeedbackSystem/.config/dotnet-tools.json

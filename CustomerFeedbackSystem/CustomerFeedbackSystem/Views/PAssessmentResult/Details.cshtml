@@ -1,0 +1,75 @@
+﻿@using System.Web
+@model CustomerFeedbackSystem.Models.Supplier1stAssess
+@{
+    Layout = "_NoNavLayout";
+    ViewData["Title"] = "電子採購";
+
+    var purchaseInfo = ViewData["PurchaseInfo"] as PurchaseRecord ?? new PurchaseRecord();
+}
+
+<div class="m-4">
+
+    <h4 class="mt-3 px-2"><i class="bi bi-search me-2"></i>請購紀錄</h4>
+    <div class="pop">
+        @* 請購詳細資料 *@
+        @await Html.PartialAsync("_PurchaseDetail", purchaseInfo)
+    </div>
+
+
+    <hr class="my-4" />
+    <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>初供評核</h4>
+    <div class="pop">
+        @* 初供評核詳細資料 *@
+        @await Html.PartialAsync("_PurchaseSupplier1stAssessDetail", Model)
+    </div>
+
+
+    <hr class="my-4" />
+    <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>驗收紀錄</h4>
+    <div class="pop">
+        @* 驗收詳細資料 *@
+        @await Html.PartialAsync("_PurchaseAssessmentDetail", purchaseInfo)
+    </div>
+
+
+    <hr class="my-4" />
+    <h4 class="m-3 px-2"><i class="bi bi-search me-2"></i>供應商評核紀錄</h4>
+    <div class="pop">
+        @* 供應商評核詳細資料 *@
+        @await Html.PartialAsync("_PurchaseSupplierAssessDetail", purchaseInfo)
+    </div>
+
+
+    <!-- 下載按鈕區 -->
+    <div class="row align-items-center my-3">
+        <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+            <a href="@Url.Action("ExportPurchase", "PAssessmentResult", new { RequestNo = purchaseInfo.RequestNo })"
+               class="btn2 btn-sm btn-primary mt-2 col-6 col-md-3 mx-1">
+                <i class="fas fa-file-word"></i>
+                <span>1、下載請購單</span>
+            </a>
+            <a href="@Url.Action("ExportAcceptance", "PAssessmentResult", new { RequestNo = purchaseInfo.RequestNo })"
+               class="btn2 btn-sm btn-primary mt-2 col-6 col-md-3 mx-1">
+                <i class="fas fa-file-word"></i>
+                <span>2、下載收貨驗收單</span>
+            </a>
+            <a href="@Url.Action("ExportFirstAssess", "PAssessmentResult", new { RequestNo = purchaseInfo.RequestNo })"
+               class="btn2 btn-sm @(string.IsNullOrEmpty(Model.AssessResult) ? "btn-secondary disabled-link" : "btn-primary") mt-2 col-6 col-md-3 mx-1">
+                <i class="fas fa-file-word"></i>
+                <span>3、下載初供評核表@(string.IsNullOrEmpty(Model.AssessResult) ? "(未完成)" : "")</span>
+            </a>
+            <a href="@Url.Action("ExportSupplierEval", "PAssessmentResult", new { RequestNo = purchaseInfo.RequestNo })"
+               class="btn2 btn-sm @(string.IsNullOrEmpty(purchaseInfo.AssessResult) ? "btn-secondary disabled-link" : "btn-primary") mt-2 col-6 col-md-3 mx-1">
+                <i class="fas fa-file-word"></i>
+                <span>4、下載供應商評核表@(string.IsNullOrEmpty(purchaseInfo.AssessResult) ? "(未完成)" : "")</span>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+
+    </script>
+}

@@ -1,0 +1,198 @@
+﻿@model CustomerFeedbackSystem.Models.PurchaseRecord
+@{
+    Layout = "_NoNavLayout";
+    ViewData["Title"] = "請購-編輯";
+    var message = TempData["alert_danger"]?.ToString();
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]</h4>
+    <form method="POST">
+        @Html.AntiForgeryToken()
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert alert-danger" role="alert">
+                @message
+            </div>
+        }
+        <div class="pop">
+            <div class="row align-items-center my-3">
+                <!-- 請購日期 -->
+                <label for="@nameof(Model.RequestDate)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.RequestDate)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="RequestDate" class="form-control" type="date" required max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <!-- 請購人 -->
+                <label for="@nameof(Model.Requester)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Requester)：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_PurchaseRequesterSelect", Model.Requester)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.RequestNo)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.RequestNo)：</strong>
+                </label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.RequestNo)
+                </div>
+
+                <label for="@nameof(Model.Purchaser)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Purchaser)：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_PurchasePurchaserSelect", Model.Purchaser)
+                </div>
+            </div>
+
+            <!-- Row：品項分類 / 供應商名稱 -->
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ProductClass)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductClass)：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_PurchaseProductClassSelect", Model.ProductClass)
+                </div>
+
+                <label for="@nameof(Model.SupplierName)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SupplierName)：</strong>
+                </label>
+                <div class="col-md-4">
+                    @await Html.PartialAsync("_PurchaseSupplierNameSelect", Model.SupplierName)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ProductName)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductName)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <textarea asp-for="ProductName" class="form-control" required rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ProductSpec)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductSpec)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <textarea asp-for="ProductSpec" class="form-control" required rows="4"></textarea>
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ProductNumber)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductNumber)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="ProductNumber" class="form-control" type="number" min="1" required />
+                </div>
+
+                <label for="@nameof(Model.ProductPrice)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductPrice)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="ProductPrice" class="form-control" type="number" min="1" required />
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ProductUnit)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ProductUnit)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="ProductUnit" class="form-control" required placeholder="pcs" />
+                </div>
+
+                <label for="@nameof(Model.KeepTime)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.KeepTime)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="KeepTime" class="form-control" type="date" />
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.QualityAgreement)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.QualityAgreement)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <select class="form-select" id="@nameof(Model.QualityAgreement)" name="@(nameof(Model.QualityAgreement))">
+                        <option value="否" selected=@(Model.QualityAgreement == "否" ? "selected" : null)>否</option>
+                        <option value="是" selected=@(Model.QualityAgreement == "是" ? "selected" : null)>是</option>
+                    </select>
+                </div>
+
+                <label for="@nameof(Model.QualityAgreementNo)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.QualityAgreementNo)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="QualityAgreementNo" class="form-control" placeholder="文件號碼" />
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label for="@nameof(Model.ChangeNotification)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ChangeNotification)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <select class="form-select" id="@nameof(Model.ChangeNotification)" name="@(nameof(Model.ChangeNotification))">
+                        <option value="否" selected=@(Model.ChangeNotification == "否" ? "selected" : null)>否</option>
+                        <option value="是" selected=@(Model.ChangeNotification == "是" ? "selected" : null)>是</option>
+                    </select>
+                </div>
+
+                <label for="@nameof(Model.ChangeNotificationNo)" class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ChangeNotificationNo)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="ChangeNotificationNo" class="form-control" placeholder="文件號碼" />
+                </div>
+            </div>
+
+            <!-- 按鈕列 -->
+            <div class="row align-items-center my-3">
+                <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+                    <button type="submit" class="btn2 btn-success mt-2 col-6 col-md-3 mx-1" formaction="@Url.Action("Edit", "PPurchaseTables", new { id = Model.RequestNo })">
+                        <i class="fas fa-check-circle"></i> 更新請購單
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        // 選擇「品項分類」後，篩選對應「供應商」
+        $(document).ready(function () {
+            $('#ProductClass').on('change', function () {
+                const selectedProductClass = $(this).val();
+                filterSuppliersByProductClass(selectedProductClass, '#SupplierName');
+            });
+
+            // 編輯頁，手動觸發事件
+            $('#ProductClass').trigger('change');
+
+            // 供應商原本就有儲存，也要被選中
+            $("#SupplierName").val('@Html.Raw(Model.SupplierName)');
+
+            // 初始檢查
+            toggleRequired("QualityAgreement", "#QualityAgreementNo");
+            toggleRequired("ChangeNotification", "#ChangeNotificationNo");
+
+            // 綁定事件
+            $("#QualityAgreement").on("change", function () {
+                toggleRequired("QualityAgreement", "#QualityAgreementNo");
+            });
+
+            $("#ChangeNotification").on("change", function () {
+                toggleRequired("ChangeNotification", "#ChangeNotificationNo");
+            });
+        });
+    </script>
+}

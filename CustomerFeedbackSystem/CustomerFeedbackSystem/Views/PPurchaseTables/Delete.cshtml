@@ -1,0 +1,130 @@
+﻿@model CustomerFeedbackSystem.Models.PurchaseRecord
+@{
+    Layout = "_NoNavLayout";
+    ViewData["Title"] = "請購-刪除";
+    var message = TempData["alert_danger"]?.ToString();
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2"><i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]</h4>
+    <form id="myFormDetail" method="post" action="@Url.Action("DeleteConfirm", new { RequestNo = Model.RequestNo})">
+        @Html.AntiForgeryToken()
+        <div class="pop">
+            <div class="row align-items-center my-3">
+                <!-- 請購日期 -->
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.RequestDate)：</strong></label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.RequestDate)
+                </div>
+                <!-- 請購人 -->
+                @*待確認：是否改用一般input text*@
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Requester)：</strong></label>
+                <div class="col-md-4">
+                    @Model.RequesterUser?.FullName
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.RequestNo)：</strong></label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.RequestNo)
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.Purchaser)：</strong></label>
+                <div class="col-md-4">
+                    @Model.PurchaserUser?.FullName
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductClass)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ProductClass) - @Html.DisplayFor(m => m.ProductClassTitle)
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.SupplierName)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.SupplierName)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductName)</strong>：</label>
+                <div class="col-md-10">
+                    @Html.DisplayFor(m => m.ProductName)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductSpec)</strong>：</label>
+                <div class="col-md-10">
+                    <span class="text-pre-wrap">@Model.ProductSpec</span>
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductNumber)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ProductNumber)
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductPrice)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ProductPrice)
+                </div>
+            </div>
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ProductUnit)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ProductUnit)
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.KeepTime)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.KeepTime)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.QualityAgreement)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.QualityAgreement)
+                </div>
+
+                <label for="QualityAgreementNo" class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.QualityAgreementNo)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.QualityAgreementNo)
+                </div>
+            </div>
+
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ChangeNotification)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ChangeNotification)
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start"><strong>@Html.DisplayNameFor(m => m.ChangeNotificationNo)</strong>：</label>
+                <div class="col-md-4">
+                    @Html.DisplayFor(m => m.ChangeNotificationNo)
+                </div>
+            </div>
+
+            <!-- 按鈕列 -->
+            <div class="row align-items-center my-3">
+                <div class="col-12 d-flex flex-wrap align-items-center justify-content-center">
+                    <button id="btn-delete" type="submit" class="btn2 btn-danger mt-2 col-6 col-md-3 mx-1">
+                        <i class="fas fa-trash-alt"></i> 刪除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            DeleteConfirmEventListener();// 刪除按鈕事件監聽
+        });
+    </script>
+}
