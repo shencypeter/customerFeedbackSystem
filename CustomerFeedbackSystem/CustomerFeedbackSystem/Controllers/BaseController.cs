@@ -150,7 +150,7 @@ namespace CustomerFeedbackSystem.Controllers
             }
 
             // 5) Title 與問候語
-            var baseTitle = "文管與電子採購系統";
+            var baseTitle = "提問單系統";
             // 若 Action/子頁面有自己設定 ViewData["Title"]，保留它；否則用 controllerLabel
             var existingTitle = ViewData["Title"]?.ToString();
             var suffix = !string.IsNullOrWhiteSpace(controllerLabel)

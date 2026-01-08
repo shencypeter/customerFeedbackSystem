@@ -15,7 +15,7 @@
     var navPages = ViewData["NavPages"] as PageLink[] ?? Array.Empty<PageLink>();
     var pageMode = ViewData["PageMode"]?.ToString() ?? "";
 
-    var fullTitle = ViewData["FullTitle"]?.ToString() ?? "文管與電子採購系統";
+    var fullTitle = ViewData["FullTitle"]?.ToString() ?? "提問單系統";
     var greeting = ViewData["Greeting"]?.ToString() ?? "";
 }
 <!DOCTYPE html>
@@ -46,7 +46,7 @@
                         <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
                             <span class="navbar-toggler-icon"></span>
                         </button>
-                        <a class="navbar-brand fw-bolder align-middle" href="~/Welcome">&ensp;文管與電子採購系統</a>
+                        <a class="navbar-brand fw-bolder align-middle" href="~/Welcome">&ensp;提問單系統</a>
                     </div>
 
                     <div class="justify-content-end user-nav">
