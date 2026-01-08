@@ -18,6 +18,12 @@ using System.Text.RegularExpressions;
 
 namespace CustomerFeedbackSystem.Controllers
 {
+    /**
+     * BaseController: 保留權限控制機制, 區隔文館採購相關邏輯, 須實作提問單相關的 select menu
+     *
+     *
+     */
+
 
     // =====================================================================
     // 建構 C# Site Map 的 class
