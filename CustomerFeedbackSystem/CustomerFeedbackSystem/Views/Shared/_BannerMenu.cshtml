@@ -15,15 +15,7 @@
     <button class="scroll-btn left"><i class="fa fa-chevron-left"></i></button>
 
     <div class="banner-menu" id="scrollableMenu">
-        @* 雙系統切換 *@
-        @if (!string.IsNullOrEmpty(pageMode) && hasDoc && hasPur)
-        {
-            var otherSystemLink = pageMode == "Document" ? "/Purchase" : "/Control";
-            var otherSystemLabel = pageMode == "Document" ? "往採購系統" : "往文管系統";
-            <a href="@otherSystemLink" id="linkSystemSelect" class="btn btn1 btn-info btn-start">
-                <i class="fas fa-arrow-left me-1"></i> @otherSystemLabel
-            </a>
-        }
+
 
         @if (navEmpty)
         {
