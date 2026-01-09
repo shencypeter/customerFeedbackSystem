@@ -2,8 +2,27 @@
 
 namespace CustomerFeedbackSystem.Models
 {
-    public class QueryModel
+    public class FeedbackQueryModel : Pagination
     {
+        public int? ItemNo { get; set;  } = default(int?);
+        public string? FeedbackNo { get; set; }
+        public string? Company { get; set; } // 公司別 三趨/甲方
+        public string OrgName { get; set; } // 提單人所屬單位
+        public string? SubmittedByRole { get; set; } // 提單人角色
+
+        public string? SubmittedByName { get; set; } // 提單人姓名
+
+        public DateTime? SubmittedDateStart { get; set; } // 提單日期 起
+        public DateTime? SubmittedDateEnd { get; set; } // 提單日期 訖
+        public string? Urgency { get; set; } // 優先/急迫性 (低中高) 非普通/急/非常急 (UI上可多選)
+        public string? Status { get; set; } // 狀態
+
+        public DateTime? ClosedDateStart { get; set; }
+        public DateTime? ClosedDateEnd { get; set; }
+
+        public string? QuestionContent { get; set; } // 提問內容 關鍵字
+        public string? ResponseContent { get; set; } // 回復內容 關鍵字
+
     }
 
     /// <summary>

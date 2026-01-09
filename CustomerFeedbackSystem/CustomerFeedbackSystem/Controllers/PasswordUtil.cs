@@ -10,7 +10,7 @@ public static class PasswordUtil
     /// <param name="dbContext"></param>
     public static void ConvertPassword(DocControlContext dbContext)
     {
-        var people = dbContext.PeopleControlTables.ToList();
+        var people = dbContext.Users.ToList();
         int updatedCount = 0;
 
         foreach (var person in people)

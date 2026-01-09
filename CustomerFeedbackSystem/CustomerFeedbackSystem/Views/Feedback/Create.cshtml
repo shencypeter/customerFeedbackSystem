@@ -1,0 +1,223 @@
+﻿@model CustomerFeedbackSystem.Models.Feedback
+
+@{
+    ViewData["Title"] = "我要提問";
+    Layout = "_NoNavLayout";
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2">
+        <i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]
+    </h4>
+
+    <form id="feedbackCreateForm"
+          asp-action="Create"
+          asp-controller="Feedback"
+          method="post">
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <!-- 主旨 -->
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>
+                    <span class="text-danger">*</span>
+                    @Html.DisplayNameFor(m => m.Subject)：
+                </strong>
+            </label>
+            <div class="col-md-8">
+                <input asp-for="Subject" class="form-control" />
+            </div>
+        </div>
+
+        <!-- 提單人資訊 -->
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedByName)：</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="SubmittedByName" class="form-control" />
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedByEmail)：</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="SubmittedByEmail" class="form-control" />
+            </div>
+        </div>
+
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="SubmittedOrg" class="form-control" />
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedByRole)：</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="SubmittedByRole" class="form-control" />
+            </div>
+        </div>
+
+        <!-- 狀態 / 緊急程度 -->
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Urgency)：</strong>
+            </label>
+            <div class="col-md-4">
+                <select asp-for="Urgency" class="form-select">
+                    <option value="">-- 請選擇 --</option>
+                    <option>低</option>
+                    <option>中</option>
+                    <option>高</option>
+                </select>
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Status)：</strong>
+            </label>
+            <div class="col-md-4">
+                <select asp-for="Status" class="form-select">
+                    <option value="新建">新建</option>
+                    <option value="處理中">處理中</option>
+                    <option value="已結案">已結案</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 日期 -->
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedDate)：</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="SubmittedDate"
+                       type="date"
+                       class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.ExpectedFinishDate)</strong>
+            </label>
+            <div class="col-md-4">
+                <input asp-for="ExpectedFinishDate"
+                       type="date"
+                       class="form-control" value="@DateTime.Today.AddDays(14).ToString("yyyy-MM-dd")" />
+            </div>
+        </div>
+
+        <!-- 內容 -->.
+        <div class="row align-items-center my-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>
+                    <span class="text-danger">*</span>
+                    @Html.DisplayNameFor(m => m.Content)：
+                </strong>
+            </label>
+            <div class="col-md-10">
+                <textarea asp-for="Content"
+                          rows="5"
+                          class="form-control"></textarea>
+            </div>
+        </div>
+
+        <!-- 附件（尚未實作，僅保留 UI 位置） -->
+        <div class="row align-items-center my-4">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>附件：</strong>
+            </label>
+
+            <div class="col-md-10">
+                <div class="border rounded p-3 bg-light">
+                    <div class="mb-2 text-muted">
+                        可上傳相關文件、截圖或補充資料（功能尚未啟用）
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <input type="file"
+                               class="form-control"
+                               multiple
+                               disabled />
+
+                        <small class="text-muted">
+                            （未來支援多檔上傳）
+                        </small>
+                    </div>
+
+                    <!-- 預留：已上傳附件清單 -->
+                    <ul class="mt-3 mb-0 text-muted">
+                        <li>尚無附件</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 操作 -->
+        <div class="col-12 d-flex justify-content-center flex-wrap gap-3">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check-circle me-1"></i>儲存
+            </button>
+
+            <button type="button"
+                    class="btn btn-secondary"
+                    data-form="feedbackCreateForm">
+                <i class="fas fa-eraser"></i>&ensp;清除
+            </button>
+        </div>
+
+    </form>
+</div>
+
+@section PageScripts {
+    <!-- TinyMCE (self-hosted) -->
+    <script src="~/js/tinymce/tinymce.min.js"
+            nonce="@ViewBag.CspNonce">
+    </script>
+
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            formClearInputListener();
+        });
+    </script>
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+
+            formClearInputListener();
+
+            tinymce.init({
+                base_url: '/js/tinymce',
+                license_key:'gpl',
+                suffix: '.min',
+                selector: 'textarea[name="Content"]',
+                height: 380,
+                menubar: false,
+                branding: false,
+                plugins: [
+                    'lists',
+                    'link',
+                    'table',
+                    'code'
+                ],
+                toolbar:
+                    'undo redo | ' +
+                    'bold italic underline | ' +
+                    'bullist numlist | ' +
+                    'link table | ' +
+                    'code',
+                content_style:
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
+            });
+
+            // Ensure form posts HTML back into textarea
+            $('#feedbackCreateForm').on('submit', function () {
+                tinymce.triggerSave();
+            });
+        });
+    </script>
+    }
+}

@@ -1,0 +1,119 @@
+﻿@model CustomerFeedbackSystem.Models.Feedback
+
+@{
+    ViewData["Title"] = "回饋單－刪除確認";
+    Layout = "_NoNavLayout";
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2">
+        <i class="bi bi-exclamation-triangle me-2 text-danger"></i>@ViewData["Title"]
+    </h4>
+
+    <form id="deleteForm"
+          method="post"
+          asp-action="DeleteConfirmed"
+          asp-controller="Feedback">
+
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="FeedbackId" />
+
+        <div class="pop">
+
+            <!-- Row 1 -->
+            <div class="row mb-3 align-items-center">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.FeedbackNo)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.FeedbackNo</div>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Status)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.Status</div>
+                </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="row mb-3 align-items-center">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Subject)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <div class="form-control-plaintext">@Model.Subject</div>
+                </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="row mb-3 align-items-center">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SubmittedByName)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.SubmittedByName</div>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.SubmittedOrg</div>
+                </div>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="row mb-3 align-items-center">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Urgency)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.Urgency</div>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SubmittedDate)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">
+                        @Model.SubmittedDate.ToString("yyyy-MM-dd")
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 5 -->
+            <div class="row mb-3 align-items-center">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Content)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <div class="form-control-plaintext">
+                        @Model.Content
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger zone -->
+            <div class="row align-items-center my-4">
+                <div class="col-12 d-flex justify-content-center">
+                    <button id="btn-delete"
+                            type="submit"
+                            class="btn btn-danger col-6 col-md-3">
+                        <i class="fas fa-trash-alt me-1"></i>確認刪除
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        $(document).ready(function () {
+            DeleteConfirmEventListener();
+        });
+    </script>
+}

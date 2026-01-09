@@ -63,6 +63,26 @@ namespace CustomerFeedbackSystem.Controllers
             public const string 系統管理者 = "系統管理者";
         }
 
+        /// <summary>
+        /// 有帳號就有閱覽權限, 此可設定是否可以提單或回覆
+        /// </summary>
+        public static class FunctionRoleStrings 
+        {
+            public const string 提問者 = "提問者";
+            public const string 回覆者 = "回覆者";
+        }
+
+        /// <summary>
+        /// 提問者身分別
+        /// </summary>
+        public static class FeedbackRoleStrings
+        {
+            public const string 三趨 = "三趨(乙方)";
+            public const string 客戶 = "客戶(甲方)";
+            public const string Anyone = $"{三趨},{客戶}";
+        }
+
+
         public static class DocRoleStrings
         {
             public const string 領用人 = "領用人";
@@ -80,9 +100,10 @@ namespace CustomerFeedbackSystem.Controllers
         }
 
         public static readonly PageLink[] SystemPages =
-        [
-            new PageLink { Controller = "Purchase", Label = "電子採購" , Roles = [PurchaseRoleStrings.Anyone] },
-            new PageLink { Controller = "Control",  Label = "文件管理" , Roles = [DocRoleStrings.Anyone] },
+        [            
+            new PageLink { Controller = "Feedback",  Label = "提問單" , Roles = [FeedbackRoleStrings.Anyone] },
+            //new PageLink { Controller = "Purchase", Label = "電子採購" , Roles = [PurchaseRoleStrings.Anyone] },
+            //new PageLink { Controller = "Control",  Label = "文件管理" , Roles = [DocRoleStrings.Anyone] },
         ];
 
         public static readonly PageLink[] AccountPages =
@@ -90,32 +111,15 @@ namespace CustomerFeedbackSystem.Controllers
             new PageLink { Controller = "AccountSettings", Label = "帳號設定", Roles = [AdminRoleStrings.系統管理者] }
         ];
 
-        public static readonly PageLink[] DocControlPages =
+        public static readonly PageLink[] FeedbackPages =
         [
-            new PageLink { Controller = "CDocumentClaim", Label = "文件領用", Roles = [DocRoleStrings.領用人] },
-            new PageLink { Controller = "CFileQuery", Label = "文件查詢", Roles = [DocRoleStrings.領用人] },
-            new PageLink { Controller = "CDocumentCancel", Label = "文件註銷", Roles = [DocRoleStrings.領用人] },
-            new PageLink { Controller = "COldDocCtrlMaintables", Label = "2020年前表單查詢", Roles = [DocRoleStrings.領用人] },
-            new PageLink { Controller = "CFormQuery", Label = "表單查詢", Roles = [DocRoleStrings.領用人] },
-            new PageLink { Controller = "CDocumentClaimReserve", Label = "保留號文件領用", Roles = [DocRoleStrings.負責人] },
-            new PageLink { Controller = "CIssueTables", Label = "表單發行", Roles = [DocRoleStrings.負責人] },
-            new PageLink { Controller = "CDocumentManage", Label = "文件管制", Roles = [DocRoleStrings.負責人] },
-            new PageLink { Controller = "CBatchStorage", Label = "批量入庫", Roles = [DocRoleStrings.負責人] },
-            new PageLink { Controller = "CManagementSettings", Label = "管理設定", Roles = [DocRoleStrings.負責人] }
+            new PageLink { Controller = "Feedback", Label = "提問單", Roles = [FeedbackRoleStrings.Anyone] },
+            //new PageLink { Controller = "AccountSettings", Label = "帳號設定", Roles = [AdminRoleStrings.系統管理者] }
         ];
 
-        public static readonly PageLink[] PurchasingPages =
-        [
-            new PageLink { Controller = "PSupplier1stAssess", Label = "初供評核", Roles = [PurchaseRoleStrings.評核人] },
-            new PageLink { Controller = "PProductClass", Label = "品項選單維護",  Roles = [PurchaseRoleStrings.評核人]},
-            new PageLink { Controller = "PPurchaseTables", Label = "請購", Roles = [PurchaseRoleStrings.Anyone] },
-            new PageLink { Controller = "PAcceptance", Label = "驗收", Roles = [PurchaseRoleStrings.Anyone] },
-            new PageLink { Controller = "PAssessment", Label = "評核與其他紀錄", Roles = [PurchaseRoleStrings.評核人] },
-            new PageLink { Controller = "PAssessmentResult", Label = "評核結果查詢", Roles = [PurchaseRoleStrings.Anyone] },
-            new PageLink { Controller = "PPurchaseRecords", Label = "請購分析",  Roles = [PurchaseRoleStrings.Anyone]},
-            new PageLink { Controller = "PQualifiedSuppliers", Label = "供應商清冊", Roles = [PurchaseRoleStrings.Anyone] },
-            new PageLink { Controller = "PSupplierReassessments", Label = "再評估",  Roles = [PurchaseRoleStrings.評核人] },
-        ];
+
+
+      
     }
 
 
@@ -195,6 +199,7 @@ namespace CustomerFeedbackSystem.Controllers
             // 2) 權限
             var hasDoc = HasRoleGroup(user, "文管");
             var hasPur = HasRoleGroup(user, "採購");
+            var hasFeedback = HasRoleGroup(user, "提問單");
             var hasAdmin = HasRoleGroup(user, "系統");
 
             // 3) 控制器與目前頁
@@ -202,8 +207,7 @@ namespace CustomerFeedbackSystem.Controllers
 
             // 合併所有頁面
             var allPages = AccountPages
-                .Concat(DocControlPages)
-                .Concat(PurchasingPages);
+                .Concat(FeedbackPages);
 
             // 目前所在頁面
             var currentPage = allPages.FirstOrDefault(p => Norm(p.Controller) == effectiveController);
@@ -221,19 +225,7 @@ namespace CustomerFeedbackSystem.Controllers
             PageLink[] navPages = sysFilter;
             string pageMode = string.Empty;
 
-            // 符合文管/採購控制器 → 用模組頁面 + 設定 pageMode
-            if (effectiveController == "control" ||
-                DocControlPages.Any(p => Norm(p.Controller) == effectiveController))
-            {
-                navPages = GetAvailablePages(user, DocControlPages);
-                pageMode = "Document";
-            }
-            else if (effectiveController == "purchase" ||
-                     PurchasingPages.Any(p => Norm(p.Controller) == effectiveController))
-            {
-                navPages = GetAvailablePages(user, PurchasingPages);
-                pageMode = "Purchase";
-            }
+
 
             // 5) Title 與問候語
             var baseTitle = "提問單系統";
@@ -349,63 +341,8 @@ namespace CustomerFeedbackSystem.Controllers
     // =====================================================================
     public partial class BaseController
     {
-        protected string NonReserveDocNos(string docNoPrefix)
-        {
-            //加上安全判斷
-            if (String.IsNullOrEmpty(docNoPrefix))
-            {
-                return "ERROR";
-            }
 
-            var nonReservedSuffixes = _context.DocControlMaintables
-                                            .Where(d => d.IdNo.StartsWith(docNoPrefix))
-                                            .Select(d => d.IdNo.Substring(docNoPrefix.Length))
-                                            .Where(s => !s.EndsWith("0")) // Exclude '000', '010', etc.
-                                            .Select(int.Parse)
-                                            .ToList();
-
-            int nextSuffix = nonReservedSuffixes.Any() ? nonReservedSuffixes.Max() + 1 : 1;
-
-            // 10的倍數編號保留下來給保留號使用，所以跳過(自動加1的意思)
-            while (nextSuffix % 10 == 0)
-            {
-                nextSuffix++;
-            }
-
-            // 組合成編號(補足3位數)
-            var nextDocNo = $"{docNoPrefix}{nextSuffix:D3}";
-
-            return nextDocNo;
-        }
-
-        protected string ReserveDocNos(string docNoPrefix)
-        {
-            // B or E + yyyyMM 尾號為0
-            var existingDocNos = _context.DocControlMaintables
-                                         .Where(d => d.IdNo.StartsWith(docNoPrefix) && d.IdNo.EndsWith("0"))
-                                         .Select(d => d.IdNo)
-                                         .ToList();
-
-            // 擷取尾號並轉為數字
-            var suffixes = existingDocNos
-                .Select(dn => dn.Substring(docNoPrefix.Length))
-                .Where(s => int.TryParse(s, out _))
-                .Select(int.Parse)
-                .ToList();
-
-            // 取最大尾號，沒有則預設為0
-            int maxSuffix = suffixes.Any() ? suffixes.Max() : 0;
-
-            // 下一個尾號：必須為10的倍數（且最小為10）
-            int nextSuffix = Math.Max(10, maxSuffix + 10);
-
-            // 補足3位數格式
-            string newSuffix = nextSuffix.ToString("D3");
-
-            // 回傳組合後的文件編號
-            return $"{docNoPrefix}{newSuffix}";
-        }
-
+       
         public string GetFormPath()
         {
             // 取得表單儲存路徑
@@ -481,181 +418,7 @@ namespace CustomerFeedbackSystem.Controllers
             return IsDateAGreaterOrEqualThanB(claimDate, turnOffDate) && IsDateAGreaterOrEqualThanB(DateTime.Today, claimDate);
         }
 
-        public string GetDocNumber(string date, string docType, string controllerType)
-        {
-            if (!DateTime.TryParse(date, out DateTime parsedDate))
-            {
-                return "領用日期格式錯誤";
-            }
 
-            if (controllerType == "CDocumentClaim" && !IsValidClaimDate(parsedDate))
-            {
-                return "領用日期選擇錯誤，應於關閉日期~當日之間";
-            }
-
-            string monthString = parsedDate.Year.ToString() + parsedDate.Month.ToString("D2"); // 補0
-            string docNoPrefix = docType + monthString;
-            if (controllerType == "CDocumentClaim")
-            {
-                return NonReserveDocNos(docNoPrefix); // 一般領用取號
-            }
-            else if (controllerType == "CDocumentClaimReserve")
-            {
-                return ReserveDocNos(docNoPrefix); // 保留號領用取號
-            }
-            else
-            {
-                return "文件類別錯誤";
-            }
-        }
-
-        protected bool CheckIssueTablesExist(DateTime date, string? DocNo, string? docver)
-        {
-            var formIssue = _context.IssueTables
-                    .FirstOrDefault(m => m.OriginalDocNo == DocNo && m.DocVer == docver && m.IssueDatetime <= date);
-
-            if (formIssue == null)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        protected void BindDocControlModelFromForm(IFormCollection formData, DocControlMaintable model)
-        {
-            // 先抓文件類別（決定是B或E）
-            model.Type = formData["rdbtype"];
-
-            // 依據Key設定各欄位值
-            foreach (var key in formData.Keys)
-            {
-                switch (key)
-                {
-                    case "rdbtype":
-                        model.Type = formData[key];
-                        break;
-
-                    case "DateTime":
-                        DateTime.TryParse(formData[key], out DateTime parsedDate);
-                        model.DateTime = parsedDate;
-                        break;
-
-                    case "txt_person_id":
-                    case "Id":
-                        model.Id = formData[key];
-                        break;
-                    case "txt_project_name":
-                        model.ProjectName = formData[key];
-                        break;
-
-                    case "txt_Boriginal_doc_no" when model.Type == "B":
-                        model.OriginalDocNo = formData[key];
-                        break;
-
-                    case "txt_Eoriginal_doc_no" when model.Type == "E":
-                        model.OriginalDocNo = formData[key];
-                        break;
-
-                    case "txt_Bdoc_ver" when model.Type == "B":
-                        model.DocVer = formData[key];
-                        break;
-
-                    case "txt_Bpurpose" when model.Type == "B":
-                        model.Purpose = formData[key];
-                        break;
-
-                    case "txt_Epurpose" when model.Type == "E":
-                        model.Purpose = formData[key];
-                        break;
-
-                    case "txt_Bname" when model.Type == "B":
-                        model.Name = formData[key];
-                        break;
-
-                    case "txt_Ename" when model.Type == "E":
-                        model.Name = formData[key];
-                        break;
-
-                    case "btnSend":
-                    case "txt_nextIdNo":
-                    case "__RequestVerificationToken":
-                    default:
-                        // 忽略不需綁定的欄位
-                        break;
-                }
-            }
-        }
-
-        protected List<string> ValidateDocControlForm(DocControlMaintable model)
-        {
-            var errors = new List<string>();
-
-            // 共用欄位驗證
-            if (!model.DateTime.HasValue)
-            {
-                errors.Add("請選擇領用日期。");
-            }
-            if (string.IsNullOrWhiteSpace(model.Type))
-            {
-                errors.Add("請選擇文件類別。");
-            }
-            if (string.IsNullOrWhiteSpace(model.Id))
-            {
-                errors.Add("請選擇領用人。");
-            }
-
-            // 廠內文件驗證（B）
-            if (model.Type == "B")
-            {
-                if (string.IsNullOrWhiteSpace(model.OriginalDocNo))
-                {
-                    errors.Add("請輸入表單編號。");
-                }
-                if (string.IsNullOrWhiteSpace(model.DocVer))
-                {
-                    errors.Add("請輸入表單版次。");
-                }
-                if (string.IsNullOrWhiteSpace(model.Name))
-                {
-                    errors.Add("請輸入紀錄名稱。");
-                }
-                if (string.IsNullOrWhiteSpace(model.Purpose))
-                {
-                    errors.Add("請輸入領用目的。");
-                }
-
-                // 檢查表單是否存在（假設 CheckIssueTablesExist 為可用的方法）
-                if (!CheckIssueTablesExist(model.DateTime.Value, model.OriginalDocNo, model.DocVer))
-                {
-                    errors.Add("請選擇正確的表單編號與表單版次。");
-                }
-            }
-
-            // 外來文件驗證（E）
-            if (model.Type == "E")
-            {
-                if (string.IsNullOrWhiteSpace(model.Name))
-                {
-                    errors.Add("請輸入文件名稱。");
-                }
-                if (string.IsNullOrWhiteSpace(model.Purpose))
-                {
-                    errors.Add("請輸入內容簡述。");
-                }
-            }
-
-            return errors;
-        }
-
-        protected async Task InsertDocControlMaintableAsync(DocControlMaintable input)
-        {
-            var IssueTable = _context.IssueTables.FirstOrDefault(m => m.OriginalDocNo == input.OriginalDocNo && m.DocVer == input.DocVer);
-            input.FileExtension = IssueTable?.FileExtension ?? "docx"; // 預設為docx
-
-            _context.DocControlMaintables.Add(input);
-            await _context.SaveChangesAsync();
-        }
     }
 
     // =====================================================================
@@ -663,119 +426,6 @@ namespace CustomerFeedbackSystem.Controllers
     // =====================================================================
     public partial class BaseController
     {
-        protected byte[] GenerateExcelDocument(DocControlMaintable model)
-        {
-            string FormPath = GetFormPath();// 取得使用者指定的檔案儲存路徑
-            string sourcefilePath_REAL = Path.Combine(FormPath, model.RealFormFileName);//到時候真實檔案名稱
-            string sourcefilePath_default = Path.Combine(_hostingEnvironment.WebRootPath, "docs", "範例Excel.xlsx");
-
-            // 判斷檔案是否存在，不存在就使用範例
-            string finalSourcePath = System.IO.File.Exists(sourcefilePath_REAL)
-                ? sourcefilePath_REAL
-                : sourcefilePath_default;
-
-            Workbook workbook = new Workbook(finalSourcePath);
-            Worksheet worksheet = workbook.Worksheets["2020"];
-            Aspose.Cells.PageSetup pageSetup = worksheet.PageSetup;
-
-            // Replace header placeholders
-            for (int i = 0; i < 3; i++)
-            {
-                string header = pageSetup.GetHeader(i);
-                if (!string.IsNullOrEmpty(header) && header.Contains("BYYYYMMNNN"))
-                {
-                    pageSetup.SetHeader(i, header.Replace("BYYYYMMNNN", model.IdNo));
-                }
-            }
-
-            using var stream = new MemoryStream();
-            workbook.Save(stream, Aspose.Cells.SaveFormat.Xlsx);
-            return stream.ToArray();
-        }
-
-        protected byte[] GenerateWordDocument(DocControlMaintable model)
-        {
-            string FormPath = GetFormPath();// 取得使用者指定的檔案儲存路徑
-            string sourcefilePath_REAL = Path.Combine(FormPath, model.RealFormFileName);//到時候真實檔案名稱
-            string sourcefilePath_default = Path.Combine(_hostingEnvironment.WebRootPath, "docs", "範例Word.docx");
-
-            // 判斷檔案是否存在，不存在就使用範例
-            string finalSourcePath = System.IO.File.Exists(sourcefilePath_REAL)
-                ? sourcefilePath_REAL
-                : sourcefilePath_default;
-
-            // 載入文件
-            Aspose.Words.Document doc = new Aspose.Words.Document(finalSourcePath);
-            DocumentBuilder builder = new DocumentBuilder(doc);
-
-            // 先取得 HeaderPrimary 內容
-            Aspose.Words.HeaderFooter header = doc.FirstSection.HeadersFooters[Aspose.Words.HeaderFooterType.HeaderPrimary];
-            string headerText = header?.GetText() ?? "";
-
-            // 移除所有連續的 \r（包含單個）
-            headerText = Regex.Replace(headerText, @"\r+", "").Trim();
-
-            // 判斷是否包含佔位字串
-            if (headerText.Contains("BYYYYMMNNN"))
-            {
-                headerText = headerText.Replace("BYYYYMMNNN", model.IdNo);
-            }
-            else
-            {
-                headerText = string.IsNullOrEmpty(headerText) ? model.IdNo : headerText;
-            }
-
-            // 清空並寫回
-            header.RemoveAllChildren();
-            builder.MoveToHeaderFooter(Aspose.Words.HeaderFooterType.HeaderPrimary);
-            builder.ParagraphFormat.Alignment = ParagraphAlignment.Center;
-            builder.ParagraphFormat.LineSpacingRule = LineSpacingRule.AtLeast;
-            builder.ParagraphFormat.LineSpacing = 5;
-            builder.Font.Name = "Calibri";
-            builder.Font.Size = 16;
-            builder.Font.Bold = true;
-            builder.Write(headerText);
-
-            using var stream = new MemoryStream();
-            doc.Save(stream, Aspose.Words.SaveFormat.Docx);
-            return stream.ToArray();
-        }
-
-        protected byte[] GeneratePowerPointDocument(DocControlMaintable model)
-        {
-            string formPath = GetFormPath(); // 取得使用者指定的檔案儲存路徑
-            string sourcefilePath_REAL = Path.Combine(formPath, model.RealFormFileName); // 真實檔案名稱
-            string sourcefilePath_default = Path.Combine(_hostingEnvironment.WebRootPath, "docs", "範例PPT.pptx");
-
-            // 判斷檔案是否存在，不存在就使用範例
-            string finalSourcePath = System.IO.File.Exists(sourcefilePath_REAL)
-                ? sourcefilePath_REAL
-                : sourcefilePath_default;
-
-            // 為了不直接改到來源檔，先複製到 MemoryStream 再操作
-            using var input = System.IO.File.OpenRead(finalSourcePath);
-            using var ms = new MemoryStream();
-            input.CopyTo(ms);
-            ms.Position = 0;
-
-            using (var ppt = PresentationDocument.Open(ms, true))
-            {
-                var presPart = ppt.PresentationPart!;
-                var pres = presPart.Presentation;
-
-                // 投影片 Id 列表
-                foreach (var slideId in pres.SlideIdList!.Elements<SlideId>())
-                {
-                    var slidePart = (SlidePart)presPart.GetPartById(slideId.RelationshipId!);
-                    AddTextBoxToSlide(slidePart, model.IdNo, 428, 0, 103, 30);
-                }
-
-                ppt.Save();
-            }
-
-            return ms.ToArray();
-        }
-
         private static long PxToEmu(int px) => px * 9525L;
 
         private static void AddTextBoxToSlide(SlidePart slidePart, string text, int xPx, int yPx, int wPx, int hPx)
@@ -854,188 +504,6 @@ namespace CustomerFeedbackSystem.Controllers
             slide.Save();
         }
 
-        protected IActionResult GetDocument(DocControlMaintable model)
-        {
-            byte[] fileBytes;
-            string contentType;
-            var asciiFileName = "download"; // ASCII-safe 備援名稱
-
-            if (model.FileExtension == "docx")
-            {
-                // 產生Word文件
-                fileBytes = GenerateWordDocument(model);
-                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            }
-            else if (model.FileExtension == "xlsx")
-            {
-                // 產生Excel文件
-                fileBytes = GenerateExcelDocument(model);
-                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            }
-            else if (model.FileExtension == "pptx")
-            {
-                // 產生Excel文件
-                fileBytes = GeneratePowerPointDocument(model);
-                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            }
-            else
-            {
-                // 用範例Word文件
-                fileBytes = GenerateWordDocument(model);
-                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            }
-
-            // 轉成UTF-8檔名
-            string encodedName = Uri.EscapeDataString(model.RealFileName);   // 轉成UTF-8
-
-            // 撰寫檔名Disposition
-            var disposition = $"attachment; filename=\"{asciiFileName}\"; filename*=UTF-8''{encodedName}";
-
-            Response.Headers[HeaderNames.ContentDisposition] = disposition;
-
-            return File(fileBytes, contentType);
-        }
-
-        protected IActionResult GetFormFile(IssueTable model)
-        {
-            // 檢查 model 是否為 null
-            if (model == null)
-            {
-                return NotFound();
-            }
-
-            // 取得實體檔案路徑
-            var sourcefilePath_REAL = Path.Combine(GetFormPath(), model.RealFileName);//到時候的真實檔名
-            string sourcefilePath_default = Path.Combine(_hostingEnvironment.WebRootPath, "docs", "範例Word.docx");
-
-            // 判斷檔案是否存在，不存在就使用範例
-            string finalSourcePath = System.IO.File.Exists(sourcefilePath_REAL)
-                ? sourcefilePath_REAL
-                : sourcefilePath_default;
-
-            // 檢查檔案是否存在
-            if (!System.IO.File.Exists(finalSourcePath))
-            {
-                return NotFound();
-            }
-
-            var asciiFileName = "download"; // ASCII-safe 備援名稱
-
-            // 讀取檔案內容
-            var fileBytes = System.IO.File.ReadAllBytes(finalSourcePath);
-
-            // 轉成UTF-8檔名
-            string encodedName = Uri.EscapeDataString(model.RealFileName);   // 轉成UTF-8
-
-            // 撰寫檔名Disposition
-            var disposition = $"attachment; filename=\"{asciiFileName}\"; filename*=UTF-8''{encodedName}";
-
-            Response.Headers[HeaderNames.ContentDisposition] = disposition;
-
-            return File(fileBytes, model.ContentType);
-        }
-
-        protected string SaveFormFile(IFormFile file, IssueTable model)
-        {
-            if (file == null || file.Length == 0 || model == null)
-                return null;
-
-            try
-            {
-                // 取得儲存路徑
-                var savePath = GetFormPath();
-
-                // 確保資料夾存在
-                if (!Directory.Exists(savePath))
-                {
-                    Directory.CreateDirectory(savePath);
-                }
-
-                // 取得副檔名與儲存檔名
-                var fileExt = Path.GetExtension(file.FileName); // e.g., ".docx"
-
-                // 更新模型的副檔名
-                model.FileExtension = fileExt.TrimStart('.'); // e.g., "docx"
-
-                var fileName = $"{model.OriginalDocNo}(v{model.DocVer}).{model.FileExtension}";
-
-                // 組成完整路徑
-                var fullPath = Path.Combine(savePath, fileName);
-
-                // 儲存檔案
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    file.CopyTo(stream);
-                }
-
-                return model.FileExtension;
-            }
-            catch (Exception ex)
-            {
-                // 這裡可以加上 log 或錯誤處理
-                Console.WriteLine("檔案儲存失敗：" + ex.Message);
-                return "";
-            }
-        }
-
-        protected void RenameDeleteFormFile(IssueTable model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.OriginalDocNo) || string.IsNullOrWhiteSpace(model.DocVer) || string.IsNullOrWhiteSpace(model.FileExtension))
-                return;
-
-            try
-            {
-                // 組成檔案名稱與路徑
-                var savePath = GetFormPath();
-
-                // 原始檔名 (不帶副檔名)
-                var baseFileName = $"{model.OriginalDocNo}(V{model.DocVer})";
-                var fullPath = Path.Combine(savePath, baseFileName + "." + model.FileExtension);
-
-                if (System.IO.File.Exists(fullPath))
-                {
-                    // 新檔案名稱 (DEL_前綴 + 原檔名 + 刪除時間 + 副檔名)
-                    var timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-                    var newFileName = $"DEL_{baseFileName}_{timeStamp}.{model.FileExtension}";
-                    var newFullPath = Path.Combine(savePath, newFileName);
-
-                    System.IO.File.Move(fullPath, newFullPath);
-                    Console.WriteLine("刪除表單檔案，檔案已重新命名：" + newFullPath);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                // 可以記錄 log
-                Console.WriteLine("刪除表單檔案，檔案重新命名失敗：" + ex.Message);
-            }
-        }
-
-        protected void DeleteFormFile(IssueTable model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.OriginalDocNo) || string.IsNullOrWhiteSpace(model.DocVer) || string.IsNullOrWhiteSpace(model.FileExtension))
-                return;
-
-            try
-            {
-                // 組成檔案名稱與路徑
-                var savePath = GetFormPath();
-                var fileName = $"{model.OriginalDocNo}(v{model.DocVer}).{model.FileExtension}";
-                var fullPath = Path.Combine(savePath, fileName);
-
-                // 檢查檔案是否存在並刪除
-                if (System.IO.File.Exists(fullPath))
-                {
-                    System.IO.File.Delete(fullPath);
-                    Console.WriteLine("刪除表單檔案，檔案已刪除：" + fullPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                // 可以記錄 log
-                Console.WriteLine("刪除表單檔案，檔案刪除失敗：" + ex.Message);
-            }
-        }
     }
 
     // =====================================================================
@@ -1302,22 +770,7 @@ namespace CustomerFeedbackSystem.Controllers
                   .ToListAsync();
         }
 
-        public async Task<QualifiedSupplier> GetQualifiedSupplierByRequestNo(string RequestNo)
-        {
-            var purchase = await _context.PurchaseRecords
-                .Include(p => p.RequesterUser)
-                .Include(p => p.PurchaserUser)
-                .FirstOrDefaultAsync(s => s.RequestNo == RequestNo);
 
-            // 複合條件抓對應供應商
-            var supplierInfo = await _context.QualifiedSuppliers
-                .FirstOrDefaultAsync(m =>
-                    m.SupplierName == purchase.SupplierName &&
-                    m.ProductClass == purchase.ProductClass)
-                ?? new QualifiedSupplier();
-
-            return supplierInfo;
-        }
 
         protected SelectOption[] DocAuthors()
         {
@@ -1409,27 +862,7 @@ namespace CustomerFeedbackSystem.Controllers
             return users;
         }
 
-        public List<ProductClass> ProductClassMenu(bool IsEnabled = false)
-        {
-            var list = _context.ProductClasses
-                .Where(pc => !IsEnabled || !pc.ProductClassTitle.Contains("停用"))
-                .AsEnumerable() // 將查詢從 DB 拉到記憶體中（因 EF Core 不支援 Culture-aware OrderBy）
-                .OrderBy(u => u.ProductClassTitle, Comparer<string>.Create((x, y) => comparer.Compare(x, y, CompareOptions.StringSort)))
-                .ToList();
-
-            return list;
-        }
-
-        public List<QualifiedSupplier> SupplierMenu()
-        {
-            var list = _context.QualifiedSuppliers
-                .AsEnumerable() // 將查詢從 DB 拉到記憶體中（因 EF Core 不支援 Culture-aware OrderBy）
-                .OrderBy(u => u.SupplierName, Comparer<string>.Create((x, y) => comparer.Compare(x, y, CompareOptions.StringSort)))
-                .ThenBy(u => u.SupplierClass, Comparer<string>.Create((x, y) => comparer.Compare(x, y, CompareOptions.StringSort)))
-                .ToList();
-
-            return list;
-        }
+   
     }
 
     // =====================================================================
@@ -1759,16 +1192,6 @@ namespace CustomerFeedbackSystem.Controllers
                 dict.Remove(baseName);
         }
 
-        protected static void ApplyScoreFlags(PurchaseRecord purchaseRecord, IDictionary<string, object> dict)
-        {
-            // 依你的固定級距展開
-            FillScoreFlags(dict, "PriceSelect", purchaseRecord.PriceSelect, 10, 5);
-            FillScoreFlags(dict, "SpecSelect", purchaseRecord.SpecSelect, 25, 15, 0);
-            FillScoreFlags(dict, "ServiceSelect", purchaseRecord.ServiceSelect, 15, 10, 5, 0);
-            FillScoreFlags(dict, "DeliverySelect", purchaseRecord.DeliverySelect, 10, 0);
-            FillScoreFlags(dict, "QualitySelect", purchaseRecord.QualitySelect, 40, 25, 5);
-        }
-
         private static void FillEnumFlags(
             IDictionary<string, object> dict,
             string baseName,
@@ -1786,52 +1209,6 @@ namespace CustomerFeedbackSystem.Controllers
                 dict.Remove(baseName);
         }
 
-        protected static void ApplyQualityAgreementFlags(
-            PurchaseRecord purchaseRecord,
-            IDictionary<string, object> dict)
-        {
-            var v = purchaseRecord.QualityAgreement; // 例如 "是"、"否"
-            FillEnumFlags(dict, "QualityAgreement", v,
-                ("_Y", new[] { "是" }),
-                ("_N", new[] { "否" })
-            );
-        }
-
-        protected static void ApplyAssessResultFlags(
-            Supplier1stAssess supplier1stAssess,
-            IDictionary<string, object> dict)
-        {
-            var v = supplier1stAssess.AssessResult; // 例如 "合格"、"改善後合格"、"不合格"
-            FillEnumFlags(dict, "AssessResult", v,
-                ("Qualified", new[] { "合格" }),
-                ("Requalified", new[] { "改善後合格" }),
-                ("Unqualified", new[] { "不合格" })
-            );
-        }
-
-        protected static void ApplySupplierClassFlags(
-            Supplier1stAssess supplier1stAssess,
-            IDictionary<string, object> dict)
-        {
-            var v = supplier1stAssess.SupplierClass; // 可能是 "RM" 或 "原料供應商" 之類
-            FillEnumFlags(dict, "SupplierClass", v,
-                ("RM", new[] { "原料供應商" }),
-                ("MI", new[] { "雜項供應商" }),
-                ("SP", new[] { "特殊供應商" })
-            );
-        }
-
-        protected static void ApplyRiskLevelFlags(
-            Supplier1stAssess supplier1stAssess,
-            IDictionary<string, object> dict)
-        {
-            var v = supplier1stAssess.RiskLevel; // 例如 "高風險"、"中風險"、"低風險"
-            FillEnumFlags(dict, "RiskLevel", v,
-                ("Height", new[] { "高" }),
-                ("Medium", new[] { "中" }),
-                ("Low", new[] { "低" })
-            );
-        }
     }
 
     // =====================================================================

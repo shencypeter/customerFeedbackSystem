@@ -10,9 +10,47 @@
 		<EnableCompressionInStaticWebAssets>false</EnableCompressionInStaticWebAssets>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Compile Remove="Views\PQualifiedSuppliers\**" />
+	  <Content Remove="Views\PQualifiedSuppliers\**" />
+	  <EmbeddedResource Remove="Views\PQualifiedSuppliers\**" />
+	  <None Remove="Views\PQualifiedSuppliers\**" />
+	</ItemGroup>
+
   <ItemGroup>
+    <Content Remove="Views\Shared\_PurchaseAssessmentDetail.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseAssessPersonSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseDetail.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseProductClassSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchasePurchaserSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseQualifiedSuppliersDetail.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseReceivePersonSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseRequesterSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseSupplier1stAssessDetail.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseSupplierAssessDetail.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseSupplierClassSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseSupplierNameDataListSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseSupplierNameSelect.cshtml" />
+    <Content Remove="Views\Shared\_PurchaseVerifyPersonSelect.cshtml" />
     <Content Remove="wwwroot\BMP-QM01-TR005 會議紀錄表 V7.2-20240701發行.docx" />
     <Content Remove="wwwroot\BMP-QP14-TR002 設備總覽表 v4.0.xlsx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Views\Shared\_PurchaseAssessmentDetail.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseAssessPersonSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseDetail.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseProductClassSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchasePurchaserSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseQualifiedSuppliersDetail.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseReceivePersonSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseRequesterSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseSupplier1stAssessDetail.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseSupplierAssessDetail.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseSupplierClassSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseSupplierNameDataListSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseSupplierNameSelect.cshtml.css" />
+    <None Remove="Views\Shared\_PurchaseVerifyPersonSelect.cshtml.css" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +77,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="App_Data\" />
+    <Folder Include="DBScript\" />
+    <Folder Include="Models\NewFolder\" />
     <Folder Include="PyScript\" />
   </ItemGroup>
 

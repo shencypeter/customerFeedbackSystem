@@ -1,0 +1,136 @@
+﻿@model CustomerFeedbackSystem.Models.Feedback
+
+@{
+    ViewData["Title"] = "回饋單－編輯";
+    Layout = "_NoNavLayout";
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2">
+        <i class="bi bi-pencil-square me-2"></i>@ViewData["Title"]
+    </h4>
+
+    <form id="feedbackEditForm"
+          method="post"
+          asp-action="Edit"
+          asp-controller="Feedback">
+
+        @Html.AntiForgeryToken()
+
+        <!-- Identity -->
+        <input type="hidden" asp-for="FeedbackId" />
+
+        <!-- Snapshot fields (must round-trip verbatim) -->
+        <input type="hidden" asp-for="FeedbackNo" />
+        <input type="hidden" asp-for="SubmittedByRole" />
+        <input type="hidden" asp-for="SubmittedByName" />
+        <input type="hidden" asp-for="SubmittedByEmail" />
+        <input type="hidden" asp-for="SubmittedOrg" />
+        <input type="hidden" asp-for="SubmittedDate" />
+        <input type="hidden" asp-for="CreatedAt" />
+
+        <div class="pop">
+
+            <!-- Row 1：編號 / 狀態 -->
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.FeedbackNo)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.FeedbackNo</div>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Status)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <select asp-for="Status" class="form-select">
+                        <option value="新建">新建</option>
+                        <option value="處理中">處理中</option>
+                        <option value="已結案">已結案</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 2：主旨 -->
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Subject)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <input asp-for="Subject" class="form-control" />
+                </div>
+            </div>
+
+            <!-- Row 3：提單人（唯讀） -->
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SubmittedByName)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.SubmittedByName</div>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <div class="form-control-plaintext">@Model.SubmittedOrg</div>
+                </div>
+            </div>
+
+            <!-- Row 4：緊急程度 / 預期完成日 -->
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Urgency)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <select asp-for="Urgency" class="form-select">
+                        <option value="">-- 請選擇 --</option>
+                        <option value="低">低</option>
+                        <option value="中">中</option>
+                        <option value="高">高</option>
+                    </select>
+                </div>
+
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.ExpectedFinishDate)：</strong>
+                </label>
+                <div class="col-md-4">
+                    <input asp-for="ExpectedFinishDate"
+                           type="date"
+                           class="form-control" />
+                </div>
+            </div>
+
+            <!-- Row 5：內容 -->
+            <div class="row align-items-center my-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>@Html.DisplayNameFor(m => m.Content)：</strong>
+                </label>
+                <div class="col-md-10">
+                    <textarea asp-for="Content"
+                              rows="5"
+                              class="form-control"></textarea>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="row align-items-center my-4">
+                <div class="col-12 d-flex justify-content-center">
+                    <button type="submit"
+                            class="btn btn-success col-6 col-md-3">
+                        <i class="fas fa-circle-check me-1"></i>存檔
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        // Edit page intentionally minimal
+    </script>
+}

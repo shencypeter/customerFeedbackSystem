@@ -1,0 +1,158 @@
+﻿@model CustomerFeedbackSystem.Models.Feedback
+
+@{
+    ViewData["Title"] = "回饋單－檢視";
+    Layout = "_NoNavLayout";
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2">
+        <i class="bi bi-card-text me-2"></i>@ViewData["Title"]
+    </h4>
+
+    <div class="pop">
+
+        <!-- 基本資訊 -->
+        <div class="row mb-3 align-items-center">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.FeedbackNo)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">@Model.FeedbackNo</div>
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Status)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">@Model.Status</div>
+            </div>
+        </div>
+
+        <div class="row mb-3 align-items-center">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Subject)：</strong>
+            </label>
+            <div class="col-md-10">
+                <div class="form-control-plaintext">@Model.Subject</div>
+            </div>
+        </div>
+
+        <!-- 提單人 -->
+        <div class="row mb-3 align-items-center">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedByName)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">@Model.SubmittedByName</div>
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">@Model.SubmittedOrg</div>
+            </div>
+        </div>
+
+        <div class="row mb-3 align-items-center">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Urgency)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">@Model.Urgency</div>
+            </div>
+
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.SubmittedDate)：</strong>
+            </label>
+            <div class="col-md-4">
+                <div class="form-control-plaintext">
+                    @Model.SubmittedDate.ToString("yyyy-MM-dd")
+                </div>
+            </div>
+        </div>
+
+        <!-- 內容 -->
+        <div class="row mb-4 align-items-center">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>@Html.DisplayNameFor(m => m.Content)：</strong>
+            </label>
+            <div class="col-md-10">
+                <div class="form-control-plaintext">
+                    @Model.Content
+                </div>
+            </div>
+        </div>
+
+        <hr />
+
+        <!-- 附件（顯示區，未實作下載） -->
+        <div class="row mb-4">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>附件</strong>
+            </label>
+            <div class="col-md-10">
+                @if (Model.Attachments != null && Model.Attachments.Any())
+                {
+                    <ul class="list-group">
+                        @foreach (var file in Model.Attachments)
+                        {
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>@file.FileName</span>
+                                <span class="text-muted small">
+                           
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-muted">尚無附件</div>
+                }
+            </div>
+        </div>
+
+        <hr />
+
+        <!-- 回覆紀錄 -->
+        <div class="row mb-3">
+            <label class="col-md-2 col-form-label text-md-end text-start">
+                <strong>回覆紀錄</strong>
+            </label>
+            <div class="col-md-10">
+                @if (Model.Responses != null && Model.Responses.Any())
+                {
+                    <ul class="list-group">
+                        @foreach (var reply in Model.Responses.OrderBy(r => r.CreatedAt))
+                        {
+                            <li class="list-group-item">
+                                <div class="fw-bold">
+                       
+                                    <span class="text-muted small ms-2">
+                                        @reply.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                    </span>
+                                </div>
+                                <div class="mt-1">
+                                    @reply.Content
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-muted">尚無回覆</div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section PageScripts {
+    <script nonce="@ViewBag.CspNonce">
+        // Details page intentionally passive
+    </script>
+}
