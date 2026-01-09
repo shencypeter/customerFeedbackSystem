@@ -130,7 +130,42 @@
 </div>
 
 @section PageScripts {
+    <!-- TinyMCE (self-hosted) -->
+    <script src="~/js/tinymce/tinymce.min.js"
+            nonce="@ViewBag.CspNonce">
+    </script>
+
     <script nonce="@ViewBag.CspNonce">
-        // Edit page intentionally minimal
+        $(document).ready(function () {
+
+            tinymce.init({
+                base_url: '/js/tinymce',
+                license_key: 'gpl',
+                suffix: '.min',
+                selector: 'textarea[name="Content"]',
+                height: 380,
+                menubar: false,
+                branding: false,
+                plugins: [
+                    'lists',
+                    'link',
+                    'table',
+                    'code'
+                ],
+                toolbar:
+                    'undo redo | ' +
+                    'bold italic underline | ' +
+                    'bullist numlist | ' +
+                    'link table | ' +
+                    'code',
+                content_style:
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
+            });
+
+            // Ensure edited HTML is posted back
+            $('#feedbackEditForm').on('submit', function () {
+                tinymce.triggerSave();
+            });
+        });
     </script>
 }

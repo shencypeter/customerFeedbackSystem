@@ -1,5 +1,6 @@
 ﻿using CustomerFeedbackSystem.Models;
 using Dapper;
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,8 +29,9 @@ namespace CustomerFeedbackSystem.Controllers
             // 系統用欄位
             { "RowNum", "#" },
 
+            { "FeedbackId", "序號" },
             // 單據識別
-            { "FeedbackNo", "編號" },
+            { "FeedbackNo", "提問單文件號" },
 
             // 提問者資訊
             { "SubmittedByName", "填表人" },
@@ -112,252 +114,126 @@ namespace CustomerFeedbackSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        /// <summary>
-        /// 顯示明細頁
-        /// </summary>
-        /// <param name="SupplierName">供應商名稱</param>
-        /// <param name="ProductClass">品項分類</param>
-        /// <returns></returns>
         [HttpGet]
-        [Route("[controller]/Details/{SupplierName}/{ProductClass}")]
-        public async Task<IActionResult> Details([FromRoute] string SupplierName, [FromRoute] string ProductClass)
+        [Route("[controller]/Details/{id:int}")]
+        public async Task<IActionResult> Details(int id)
         {
-            if (string.IsNullOrEmpty(SupplierName) || string.IsNullOrEmpty(ProductClass))
+            var feedback = await context.Feedbacks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.FeedbackId == id);
+
+            if (feedback == null)
             {
                 return NotFound();
             }
 
-            // 過濾文字
-            QueryableExtensions.TrimStringProperties(SupplierName);
-            QueryableExtensions.TrimStringProperties(ProductClass);
-
-            var qualifiedSupplier = "";
-
-            if (qualifiedSupplier == null)
-            {
-                return NotFound();
-            }
-
-            return View(qualifiedSupplier);
+            return View(feedback);
         }
 
-        /// <summary>
-        /// 新增供應商
-        /// </summary>
-        /// <param name="from"></param>
-        /// <returns></returns>
+        [HttpGet]
+        [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
         public IActionResult Create()
         {
-            //有提問權限才可以使用
-            if (User.IsInRole(FunctionRoleStrings.提問者) || User.IsInRole(AdminRoleStrings.系統管理者))
-            {
-                //QualifiedSupplier model = new QualifiedSupplier();
-
-                return View();
-            }
-
-            //403
-            return Forbid();
+            return View(new Feedback());
         }
 
-        ///// <summary>
-        ///// 新增供應商儲存
-        ///// </summary>
-        ///// <param name="qualifiedSupplier">資料</param>
-        ///// <param name="returnTo"></param>
-        ///// <returns></returns>
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Create(QualifiedSupplier qualifiedSupplier)
-        //{
-        //    // 評核人才顯示新增供應商
-        //    if (!User.IsInRole(BaseController.PurchaseRoleStrings.評核人))
-        //    {
-        //        return Forbid();
-        //    }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> Create(Feedback feedback)
+        {
+            QueryableExtensions.TrimStringProperties(feedback);
 
-        //    // 過濾文字
-        //    QueryableExtensions.TrimStringProperties(qualifiedSupplier);
+            if (!ModelState.IsValid)
+            {
+                return View(feedback);
+            }
 
-        //    string msg = "";
-        //    if (!string.IsNullOrEmpty(qualifiedSupplier.SupplierName) && !string.IsNullOrEmpty(qualifiedSupplier.ProductClass))
-        //    {
-        //        /*
-        //        var searchParams = new Dictionary<string, string?>
-        //        {
-        //            { "supplier_name", qualifiedSupplier.SupplierName.Trim()},
-        //            { "product_class", qualifiedSupplier.ProductClass.Trim()},
-        //            { "supplier_no", ""}
-        //        };
+            feedback.SubmittedDate = DateTime.Now;
+            feedback.Status ??= "Open";
 
-        //        QualifiedSupplier_Data? data = context.GetQualifiedSuppliersDatas(searchParams);
-        //        */
-        //        // 取單一資料
-        //        var data = await context.QualifiedSuppliers
-        //            .Where(q =>
-        //                q.SupplierName == qualifiedSupplier.SupplierName.Trim() &&
-        //                q.ProductClass == qualifiedSupplier.ProductClass.Trim()
-        //            )
-        //            .FirstOrDefaultAsync();
+            context.Feedbacks.Add(feedback);
+            await context.SaveChangesAsync();
 
-        //        if (data != null)
-        //        {
-        //            msg = "供應商清冊-該組「品項編號」和「供應商名稱」己經存在";
-        //        }
-        //    }
+            return DismissModal("提問單新增成功");
+        }
 
-        //    var qualifiedSupplierDB = await context.ProductClasses.FirstOrDefaultAsync(m => m.ProductClass1 == qualifiedSupplier.ProductClass && !m.ProductClassTitle.Contains("停用"));
+        [HttpGet]
+        [Route("[controller]/Edit/{id:int}")]
+        [Authorize(Roles = AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var feedback = await context.Feedbacks.FindAsync(id);
+            if (feedback == null)
+            {
+                return NotFound();
+            }
 
-        //    if (qualifiedSupplierDB != null && ModelState.IsValid && string.IsNullOrEmpty(msg))
-        //    {
-        //        qualifiedSupplier.ProductClassTitle = qualifiedSupplierDB.ProductClassTitle;// 補品項說明進去
-        //        context.Add(qualifiedSupplier);
-        //        await context.SaveChangesAsync();
-        //        msg = "供應商清冊-新增成功";
-        //    }
+            return View(feedback);
+        }
 
-        //    return DismissModal(msg);
-        //}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("[controller]/Edit/{id:int}")]
+        [Authorize(Roles = AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> Edit(int id, Feedback model)
+        {
+            QueryableExtensions.TrimStringProperties(model);
 
-        ///// <summary>
-        ///// 顯示編輯頁
-        ///// </summary>
-        ///// <param name="SupplierName">供應商名稱</param>
-        ///// <param name="ProductClass">品項分類</param>
-        ///// <returns></returns>
-        //[HttpGet]
-        //[Route("[controller]/Edit/{SupplierName}/{ProductClass}")]
-        //[Authorize(Roles = PurchaseRoleStrings.評核人)]
-        //public async Task<IActionResult> Edit([FromRoute] string SupplierName, [FromRoute] string ProductClass)
-        //{
-        //    if (string.IsNullOrEmpty(SupplierName) || string.IsNullOrEmpty(ProductClass))
-        //    {
-        //        return NotFound();
-        //    }
+            var entity = await context.Feedbacks.FindAsync(id);
+            if (entity == null)
+            {
+                return NotFound();
+            }
 
-        //    // 過濾文字
-        //    QueryableExtensions.TrimStringProperties(SupplierName);
-        //    QueryableExtensions.TrimStringProperties(ProductClass);
+            // Explicitly allowed updates
+            entity.Subject = model.Subject;
+            entity.Content = model.Content;
+            entity.Urgency = model.Urgency;
+            entity.ExpectedFinishDate = model.ExpectedFinishDate;
+            entity.Status = model.Status;
 
-        //    var qualifiedSupplier = await context.QualifiedSuppliers
-        //        .FirstOrDefaultAsync(m => m.SupplierName == SupplierName && m.ProductClass == ProductClass);
-        //    if (qualifiedSupplier == null)
-        //    {
-        //        return NotFound();
-        //    }
+            await context.SaveChangesAsync();
 
-        //    return View(qualifiedSupplier);
-        //}
+            return DismissModal("提問單更新成功");
+        }
 
-        ///// <summary>
-        ///// 編輯頁儲存送出
-        ///// </summary>
-        ///// <param name="SupplierName">供應商名稱</param>
-        ///// <param name="ProductClass">品項分類</param>
-        ///// <param name="qualifiedSupplier">資料</param>
-        ///// <returns></returns>
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //[Route("[controller]/Edit/{SupplierName}/{ProductClass}")]
-        //[Authorize(Roles = PurchaseRoleStrings.評核人)]
-        //public async Task<IActionResult> Edit([FromRoute] string SupplierName, [FromRoute] string ProductClass, QualifiedSupplier qualifiedSupplier)
-        //{
-        //    if (string.IsNullOrEmpty(SupplierName) || string.IsNullOrEmpty(ProductClass))
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpGet]
+        [Route("[controller]/Delete/{id:int}")]
+        [Authorize(Roles = AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var feedback = await context.Feedbacks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.FeedbackId == id);
 
-        //    // 過濾文字
-        //    QueryableExtensions.TrimStringProperties(SupplierName);
-        //    QueryableExtensions.TrimStringProperties(ProductClass);
-        //    QueryableExtensions.TrimStringProperties(qualifiedSupplier);
+            if (feedback == null)
+            {
+                return NotFound();
+            }
 
-        //    var entity = await context.QualifiedSuppliers.FirstOrDefaultAsync(q => q.SupplierName == SupplierName && q.ProductClass == ProductClass);
+            return View(feedback);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("[controller]/DeleteConfirm/{id:int}")]
+        [Authorize(Roles = AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> DeleteConfirm(int id)
+        {
+            await context.FeedbackResponses
+                .Where(r => r.FeedbackId == id)
+                .ExecuteDeleteAsync();
 
-        //    if (entity == null)
-        //    {
-        //        return NotFound();
-        //    }
+            await context.FeedbackAttachments
+                .Where(f => f.FeedbackId == id)
+                .ExecuteDeleteAsync();
 
-        //    // 僅手動覆寫允許的欄位
-        //    entity.SupplierNo = qualifiedSupplier.SupplierNo;
-        //    entity.Tele = qualifiedSupplier.Tele;
-        //    entity.Tele2 = qualifiedSupplier.Tele2;
-        //    entity.Remarks = qualifiedSupplier.Remarks;
-        //    entity.Fax = qualifiedSupplier.Fax;
-        //    entity.Address = qualifiedSupplier.Address;
-        //    entity.SupplierInfo = qualifiedSupplier.SupplierInfo;
+            await context.Feedbacks
+                .Where(f => f.FeedbackId == id)
+                .ExecuteDeleteAsync();
 
-        //    await context.SaveChangesAsync();
-
-        //    return DismissModal("供應商清冊-更新成功");
-
-        //}
-
-        ///// <summary>
-        ///// 顯示刪除頁
-        ///// </summary>
-        ///// <param name="SupplierName">供應商名稱</param>
-        ///// <param name="ProductClass">品項分類</param>
-        ///// <returns></returns>
-        //[HttpGet]
-        //[Route("[controller]/Delete/{SupplierName}/{ProductClass}")]
-        //[Authorize(Roles = PurchaseRoleStrings.評核人)]
-        //public async Task<IActionResult> Delete([FromRoute] string SupplierName, [FromRoute] string ProductClass)
-        //{
-        //    if (string.IsNullOrEmpty(SupplierName) || string.IsNullOrEmpty(ProductClass))
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    // 過濾文字
-        //    QueryableExtensions.TrimStringProperties(SupplierName);
-        //    QueryableExtensions.TrimStringProperties(ProductClass);
-
-        //    var qualifiedSupplier = await context.QualifiedSuppliers
-        //        .FirstOrDefaultAsync(m => m.SupplierName == SupplierName && m.ProductClass == ProductClass);
-        //    if (qualifiedSupplier == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return View(qualifiedSupplier);
-        //}
-
-        ///// <summary>
-        ///// 刪除供應商
-        ///// </summary>
-        ///// <param name="supplier_name">供應商名稱</param>
-        ///// <param name="product_class">品項分類</param>
-        ///// <returns></returns>
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //[Route("[controller]/DeleteConfirm/{SupplierName}/{ProductClass}")]
-        //[Authorize(Roles = PurchaseRoleStrings.評核人)]
-        //public async Task<IActionResult> DeleteConfirm(string SupplierName, string ProductClass)
-        //{
-        //    if (string.IsNullOrEmpty(SupplierName) || string.IsNullOrEmpty(ProductClass))
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    // 過濾文字
-        //    QueryableExtensions.TrimStringProperties(SupplierName);
-        //    QueryableExtensions.TrimStringProperties(ProductClass);
-
-        //    var qualifiedSupplier = await context.QualifiedSuppliers
-        //        .FirstOrDefaultAsync(m => m.SupplierName == SupplierName && m.ProductClass == ProductClass);
-
-        //    if (qualifiedSupplier != null)
-        //    {
-        //        context.QualifiedSuppliers.Remove(qualifiedSupplier);
-        //    }
-
-        //    await context.SaveChangesAsync();
-
-        //    return DismissModal("供應商清冊-刪除成功");
-
-        //}
+            return DismissModal("提問單刪除成功");
+        }
 
         /// <summary>
         /// 匯出查詢結果Excel
