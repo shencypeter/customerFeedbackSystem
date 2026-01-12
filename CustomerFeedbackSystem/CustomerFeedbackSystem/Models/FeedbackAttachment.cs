@@ -25,10 +25,6 @@ public class FeedbackAttachment
     [Display(Name = "副檔名")]
     public string FileExtension { get; set; } = null!;
 
-
-    //[Display(Name = "檔案大小")]
-    //public long FileSizeBytes { get; set; }
-
     [Display(Name = "儲存識別碼")]
     public string StorageKey { get; set; } = null!;
 

@@ -544,6 +544,12 @@ namespace CustomerFeedbackSystem.Controllers
             return (docNoA, docNoB); // 不改順序
         }
 
+        /// <summary>
+        /// 確保日期起迄日順序正確
+        /// </summary>
+        /// <param name="date1"></param>
+        /// <param name="date2"></param>
+        /// <returns></returns>
         protected static (DateTime? Start, DateTime? End) GetOrderedDates(DateTime? date1, DateTime? date2)
         {
             if (date1 != null && date2 != null)

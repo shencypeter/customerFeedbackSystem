@@ -1,5 +1,9 @@
-﻿@model CustomerFeedbackSystem.Models.Feedback
+﻿@model CustomerFeedbackSystem.Models.FeedbackDetailsViewModel
 
+@{
+    ViewData["Title"] = "回饋單－檢視";
+    Layout = "_NoNavLayout";
+}
 @{
     ViewData["Title"] = "回饋單－檢視";
     Layout = "_NoNavLayout";
@@ -15,60 +19,60 @@
         <!-- 基本資訊 -->
         <div class="row mb-3 align-items-center">
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.FeedbackNo)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.FeedbackNo)：</strong>
             </label>
             <div class="col-md-4">
-                <div class="form-control-plaintext">@Model.FeedbackNo</div>
+                <div class="form-control-plaintext">@Model.Feedback.FeedbackNo</div>
             </div>
 
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.Status)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.Status)：</strong>
             </label>
             <div class="col-md-4">
-                <div class="form-control-plaintext">@Model.Status</div>
+                <div class="form-control-plaintext">@Model.Feedback.Status</div>
             </div>
         </div>
 
         <div class="row mb-3 align-items-center">
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.Subject)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.Subject)：</strong>
             </label>
             <div class="col-md-10">
-                <div class="form-control-plaintext">@Model.Subject</div>
+                <div class="form-control-plaintext">@Model.Feedback.Subject</div>
             </div>
         </div>
 
         <!-- 提單人 -->
         <div class="row mb-3 align-items-center">
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.SubmittedByName)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.SubmittedByName)：</strong>
             </label>
             <div class="col-md-4">
-                <div class="form-control-plaintext">@Model.SubmittedByName</div>
+                <div class="form-control-plaintext">@Model.Feedback.SubmittedByName</div>
             </div>
 
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.SubmittedOrg)：</strong>
             </label>
             <div class="col-md-4">
-                <div class="form-control-plaintext">@Model.SubmittedOrg</div>
+                <div class="form-control-plaintext">@Model.Feedback.SubmittedOrg</div>
             </div>
         </div>
 
         <div class="row mb-3 align-items-center">
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.Urgency)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.Urgency)：</strong>
             </label>
             <div class="col-md-4">
-                <div class="form-control-plaintext">@Model.Urgency</div>
+                <div class="form-control-plaintext">@Model.Feedback.Urgency</div>
             </div>
 
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.SubmittedDate)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.SubmittedDate)：</strong>
             </label>
             <div class="col-md-4">
                 <div class="form-control-plaintext">
-                    @Model.SubmittedDate.ToString("yyyy-MM-dd")
+                    @Model.Feedback.SubmittedDate.ToString("yyyy-MM-dd")
                 </div>
             </div>
         </div>
@@ -76,31 +80,28 @@
         <!-- 內容 -->
         <div class="row mb-4 align-items-center">
             <label class="col-md-2 col-form-label text-md-end text-start">
-                <strong>@Html.DisplayNameFor(m => m.Content)：</strong>
+                <strong>@Html.DisplayNameFor(m => m.Feedback.Content)：</strong>
             </label>
             <div class="col-md-10">
                 <div class="form-control-plaintext">
-                    @Model.Content
+                    @Model.Feedback.Content
                 </div>
             </div>
         </div>
 
-        <!-- 附件（顯示區，未實作下載） -->
+        <!-- 提問附件 -->
         <div class="row mb-4">
             <label class="col-md-2 col-form-label text-md-end text-start">
                 <strong>附件</strong>
             </label>
             <div class="col-md-10">
-                @if (Model.Attachments != null && Model.Attachments.Any())
+                @if (Model.QuestionAttachments.Any())
                 {
                     <ul class="list-group">
-                        @foreach (var file in Model.Attachments)
+                        @foreach (var file in Model.QuestionAttachments)
                         {
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>@file.FileName</span>
-                                <span class="text-muted small">
-                           
-                                </span>
+                            <li class="list-group-item py-1">
+                                <a href="/Feedback/Attachment/@file.AttachmentId" download> <i class="bi bi-paperclip me-1"></i>@file.FileName</a>
                             </li>
                         }
                     </ul>
@@ -112,28 +113,41 @@
             </div>
         </div>
 
-
         <!-- 回覆紀錄 -->
         <div class="row mb-3">
             <label class="col-md-2 col-form-label text-md-end text-start">
                 <strong>回覆紀錄</strong>
             </label>
+
             <div class="col-md-10">
-                @if (Model.Responses != null && Model.Responses.Any())
+                @if (Model.Replies.Any())
                 {
                     <ul class="list-group">
-                        @foreach (var reply in Model.Responses.OrderBy(r => r.CreatedAt))
+                        @foreach (var reply in Model.Replies.OrderBy(r => r.CreatedAt))
                         {
                             <li class="list-group-item">
                                 <div class="fw-bold">
-                       
+                                    @reply.ResponderName
                                     <span class="text-muted small ms-2">
-                                        @reply.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                        @ReplyAt(reply.CreatedAt)
                                     </span>
                                 </div>
+
                                 <div class="mt-1">
-                                    @reply.Content
+                                    @Html.Raw(reply.Content)
                                 </div>
+
+                                @if (Model.ReplyAttachments.Contains(reply.ResponseId))
+                                {
+                                    <ul class="list-group mt-2">
+                                        @foreach (var file in Model.ReplyAttachments[reply.ResponseId])
+                                        {
+                                            <li class="list-group-item py-1">
+                                                <a href="/Feedback/Attachment/@file.AttachmentId" download> <i class="bi bi-paperclip me-1"></i>@file.FileName</a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
                             </li>
                         }
                     </ul>
@@ -148,25 +162,31 @@
         <hr />
 
         <!-- 新增回覆 -->
-        <form asp-action="CreateReply"
+        <form asp-action="Reply"
               asp-controller="Feedback"
               method="post"
               enctype="multipart/form-data"
               id="feedbackReplyForm">
 
             @Html.AntiForgeryToken()
-            <input type="hidden" name="FeedbackId" value="@Model.FeedbackId" />
+            <input type="hidden" name="FeedbackId" value="@Model.Feedback.FeedbackId" />
 
             <div class="row mb-3">
                 <label class="col-md-2 col-form-label text-md-end text-start">
                     <strong>新增回覆</strong>
                 </label>
 
+         
                 <div class="col-md-10">
-                    <textarea name="Content"
+                    <div id="replyValidationAlert"
+                         class="alert alert-warning d-none"
+                         role="alert">
+                        請先輸入回覆內容，再送出 🙂
+                    </div>
+                    <textarea name="Content" id="replyContent"
                               class="form-control reply-editor"
                               rows="5"
-                              placeholder="請輸入回覆內容…"></textarea>
+                              placeholder="@User.FindFirst("FullName")?.Value?.Trim() 說: (回覆內容為必填!)" required></textarea>
                 </div>
             </div>
 
@@ -179,7 +199,7 @@
                 <div class="col-md-10">
                     <div class="border rounded p-3 bg-light">
                         <input type="file"
-                               name="Files"
+                               name="attachments"
                                multiple
                                class="form-control" />
 
@@ -190,10 +210,11 @@
                 </div>
             </div>
 
-            <!-- 操作 -->
             <div class="row mb-4">
                 <div class="col-12 d-flex justify-content-center gap-3">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit"
+                            class="btn btn-primary"
+                            formaction="@Url.Action("Reply", new { id = Model.Feedback.FeedbackId })">
                         <i class="fas fa-paper-plane me-1"></i>送出回覆
                     </button>
 
@@ -205,9 +226,43 @@
 
         </form>
 
+    </div>
+</div>
+
+
 
     </div>
 </div>
+
+@functions{
+
+
+
+
+
+    string ReplyAt(DateTime dt)
+    {
+        var now = DateTime.Now;
+        var diff = now - dt;
+
+        if (diff.TotalSeconds < 10)
+            return " 剛剛";
+
+        if (diff.TotalSeconds < 60)
+            return $" < 1 分鐘前";
+
+        if (diff.TotalMinutes < 60)
+            return $" < 1 小時前";
+
+        if (dt.Date == now.Date)
+            return "今天稍早";
+
+
+        return dt.ToString("yyyy/MM/dd HH:mm");
+    }
+
+
+}
 
 @section PageScripts {
     <script src="~/js/tinymce/tinymce.min.js"
@@ -224,23 +279,34 @@
                 height: 300,
                 menubar: false,
                 branding: false,
-                plugins: [
-                    'lists',
-                    'link',
-                    'table',
-                    'code'
-                ],
+                plugins: ['lists', 'link', 'table', 'code'],
                 toolbar:
-                    'undo redo | ' +
-                    'bold italic underline | ' +
-                    'bullist numlist | ' +
-                    'link table | ' +
-                    'code',
+                    'undo redo | bold italic underline | ' +
+                    'bullist numlist | link table | code',
                 content_style:
                     'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
             });
 
-            $('#feedbackReplyForm').on('submit', function () {
+            $('#feedbackReplyForm').on('submit', function (e) {
+
+                const editor = tinymce.get($('.reply-editor').attr('id'));
+
+                // Normalize content: strip tags & whitespace
+                const plainText = editor.getContent({ format: 'text' }).trim();
+
+                if (!plainText) {
+                    e.preventDefault();
+
+                    $('#replyValidationAlert').removeClass('d-none');
+
+                    editor.focus();
+                    editor.selection.select(editor.getBody(), true);
+                    editor.selection.collapse(false);
+
+                    return false;
+                }
+
+                // Sync editor → textarea for normal posting
                 tinymce.triggerSave();
             });
         });

@@ -102,10 +102,15 @@ namespace CustomerFeedbackSystem.Controllers
         /// <returns></returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index(QualifiedSupplierQueryModel queryModel)
+        public IActionResult Index(FeedbackQueryModel queryModel)
         {
-            // 日期的檢查
-            (queryModel.ReassessDateStart, queryModel.ReassessDateEnd) = GetOrderedDates(queryModel.ReassessDateStart, queryModel.ReassessDateEnd);
+            // 結案日期
+            (queryModel.ClosedDateStart, queryModel.ClosedDateEnd) = 
+                GetOrderedDates(queryModel.ClosedDateStart, queryModel.ClosedDateEnd);
+
+            //提問日期
+            (queryModel.SubmittedDateStart, queryModel.SubmittedDateEnd) =
+    GetOrderedDates(queryModel.SubmittedDateStart, queryModel.SubmittedDateEnd);
 
             // 儲存查詢model到session中
             QueryableExtensions.SetSessionQueryModel(HttpContext, queryModel);
@@ -162,14 +167,16 @@ namespace CustomerFeedbackSystem.Controllers
                 .Where(a => a.ResponseId != null)
                 .ToLookup(a => a.ResponseId!.Value);
 
-            // =======================
-            // 5. Pass to View
-            // =======================
-            ViewData["Replies"] = replies;
-            ViewData["Attachments"] = questionAttachments;
-            ViewData["ReplyAttachments"] = replyAttachments;
+            var vm = new FeedbackDetailsViewModel
+            {
+                Feedback = feedback,
+                Replies = replies,
+                QuestionAttachments = questionAttachments,
+                ReplyAttachments = replyAttachments
+            };
 
-            return View(feedback);
+
+            return View(vm);
         }
 
 
@@ -180,12 +187,6 @@ namespace CustomerFeedbackSystem.Controllers
             return View(new Feedback());
         }
 
-        /// <summary>
-        /// 新增提問單
-        /// </summary>
-        /// <param name="feedback"></param>
-        /// <param name="attachments"></param>
-        /// <returns></returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
@@ -197,52 +198,44 @@ namespace CustomerFeedbackSystem.Controllers
             QueryableExtensions.TrimStringProperties(feedback);
 
             if (!ModelState.IsValid)
-            {
                 return View(feedback);
-            }
 
             feedback.SubmittedDate = DateTime.Now;
             feedback.Status ??= "Open";
 
             context.Feedbacks.Add(feedback);
-            await context.SaveChangesAsync(); // 🔑 need FeedbackId & FeedbackNo
-
-            // =======================
-            // Attachment handling
-            // =======================
+            await context.SaveChangesAsync(); // need FeedbackId + FeedbackNo
 
             if (attachments is { Count: > 0 })
             {
-                var rootUploadPath = Path.Combine(
+                var rootPath = Path.Combine(
                     hostingEnvironment.ContentRootPath,
                     configuration["UploadSettings:UploadPath"]!
                 );
 
-                var feedbackFolder = Path.Combine(rootUploadPath, feedback.FeedbackNo);
+                var feedbackFolder = Path.Combine(rootPath, feedback.FeedbackNo);
                 Directory.CreateDirectory(feedbackFolder);
 
                 foreach (var file in attachments.Where(f => f.Length > 0))
                 {
-                    var safeFileName = Path.GetFileName(file.FileName);
-                    var fullPath = Path.Combine(feedbackFolder, safeFileName);
+                    var originalName = Path.GetFileName(file.FileName);
+                    var ext = Path.GetExtension(originalName);
 
-                    // Optional collision handling
-                    if (System.IO.File.Exists(fullPath))
-                    {
-                        fullPath = Path.Combine(
-                            feedbackFolder,
-                            $"{Path.GetFileNameWithoutExtension(safeFileName)}_{DateTime.Now:HHmmss}{Path.GetExtension(safeFileName)}"
-                        );
-                    }
+                    var storageName = $"{Guid.NewGuid():N}{ext}";
+                    var physicalPath = Path.Combine(feedbackFolder, storageName);
 
-                    using var stream = System.IO.File.Create(fullPath);
+                    using var stream = System.IO.File.Create(physicalPath);
                     await file.CopyToAsync(stream);
 
                     context.FeedbackAttachments.Add(new FeedbackAttachment
                     {
                         FeedbackId = feedback.FeedbackId,
-                        FileName = safeFileName,
-                         UploadedAt = DateTime.Now, 
+                        ResponseId = null,
+                        FileName = originalName,
+                        FileExtension = ext,
+                        StorageKey = Path.Combine(feedback.FeedbackNo, storageName),
+                        UploadedByName = User.Identity!.Name!,
+                        UploadedAt = DateTime.Now
                     });
                 }
 
@@ -252,6 +245,45 @@ namespace CustomerFeedbackSystem.Controllers
             return DismissModal("提問單新增成功");
         }
 
+        /// <summary>
+        /// 🔗按照附件ID 取得檔案
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("[controller]/Attachment/{id:int}")]
+        [Authorize(Roles = FeedbackRoleStrings.Anyone)]
+        public async Task<IActionResult> Attachment(int id)
+        {
+            var attachment = await context.FeedbackAttachments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.AttachmentId == id);
+
+            if (attachment == null)
+                return NotFound();
+
+            // Optional: permission check (future-safe)
+            // e.g. verify current user can see attachment.FeedbackId
+
+            var rootPath = Path.Combine(
+                hostingEnvironment.ContentRootPath,
+                configuration["UploadSettings:UploadPath"]!
+            );
+
+            var physicalPath = Path.Combine(rootPath, attachment.StorageKey);
+
+            if (!System.IO.File.Exists(physicalPath))
+                return NotFound("File not found on disk");
+
+            var contentType = "application/octet-stream";
+
+            return PhysicalFile(
+                physicalPath,
+                contentType,
+                attachment.FileName   // 👈 original filename
+            );
+        }
+
 
 
         [HttpPost]
@@ -259,10 +291,10 @@ namespace CustomerFeedbackSystem.Controllers
         [Route("[controller]/Reply/{id:int}")]
         [Authorize(Roles = FunctionRoleStrings.回覆者 + "," + AdminRoleStrings.系統管理者)]
         public async Task<IActionResult> Reply(
-            int id,
-            FeedbackResponse response,
-            List<IFormFile>? attachments
-        )
+    int id,
+    FeedbackResponse response,
+    List<IFormFile>? attachments
+)
         {
             QueryableExtensions.TrimStringProperties(response);
 
@@ -272,51 +304,51 @@ namespace CustomerFeedbackSystem.Controllers
 
             response.FeedbackId = id;
             response.ResponseDate = DateTime.Now;
+            response.CreatedAt = DateTime.Now;
 
-            //查 employee 填滿這裡的資料
             response.ResponderName = User.Identity!.Name!;
+            response.ResponderEmail =
+                User.FindFirst("Email")?.Value ?? $"{User.Identity.Name}@company.local";
+
+            response.ResponderOrg = "部門";
+            response.ResponderRole = "回覆者";
+
+            feedback.Status = "已回復";
+            response.StatusAfterResponse = feedback.Status;
 
             context.FeedbackResponses.Add(response);
-            await context.SaveChangesAsync(); // 🔑 need FeedbackResponseId
-
-            // =======================
-            // Attachments (reply-level)
-            // =======================
+            await context.SaveChangesAsync(); // need ResponseId
 
             if (attachments is { Count: > 0 })
             {
-                var rootUploadPath = Path.Combine(
+                var rootPath = Path.Combine(
                     hostingEnvironment.ContentRootPath,
                     configuration["UploadSettings:UploadPath"]!
                 );
 
-                var feedbackFolder = Path.Combine(rootUploadPath, feedback.FeedbackNo);
+                var feedbackFolder = Path.Combine(rootPath, feedback.FeedbackNo);
                 Directory.CreateDirectory(feedbackFolder);
 
                 foreach (var file in attachments.Where(f => f.Length > 0))
                 {
-                    var safeFileName = Path.GetFileName(file.FileName);
-                    var fullPath = Path.Combine(feedbackFolder, safeFileName);
+                    var originalName = Path.GetFileName(file.FileName);
+                    var ext = Path.GetExtension(originalName);
 
-                    if (System.IO.File.Exists(fullPath))
-                    {
-                        fullPath = Path.Combine(
-                            feedbackFolder,
-                            $"{Path.GetFileNameWithoutExtension(safeFileName)}_{DateTime.Now:HHmmss}{Path.GetExtension(safeFileName)}"
-                        );
-                    }
+                    var storageName = $"{Guid.NewGuid():N}{ext}";
+                    var physicalPath = Path.Combine(feedbackFolder, storageName);
 
-                    using var stream = System.IO.File.Create(fullPath);
+                    using var stream = System.IO.File.Create(physicalPath);
                     await file.CopyToAsync(stream);
 
                     context.FeedbackAttachments.Add(new FeedbackAttachment
                     {
                         FeedbackId = id,
                         ResponseId = response.ResponseId,
-                        FileName = safeFileName,
-                        //FilePath = fullPath,
-
-                         UploadedAt = DateTime.Now,
+                        FileName = originalName,
+                        FileExtension = ext,
+                        StorageKey = Path.Combine(feedback.FeedbackNo, storageName),
+                        UploadedByName = response.ResponderName,
+                        UploadedAt = DateTime.Now
                     });
                 }
 
@@ -450,22 +482,12 @@ namespace CustomerFeedbackSystem.Controllers
         /// <returns>查詢結果</returns>
         private async Task<IActionResult> LoadPage(FeedbackQueryModel queryModel)
         {
-            //ViewData["PurchaseSupplierName"] = SupplierMenu();
             ViewData["pageNumber"] = queryModel.PageNumber.ToString();
 
             BuildQueryFeedback(queryModel, out var parameters, out var sqlQuery);
             FilterOrderBy(queryModel, TableHeaders, InitSort);
 
-            switch (queryModel.OrderBy)
-            {
-                case "supplier_name":
-                    queryModel.OrderBy = $"supplier_name {queryModel.SortDir}, product_class ";
-                    break;
-                case "product_class":
-                    queryModel.OrderBy = $"product_class {queryModel.SortDir}, supplier_name ";
-                    break;
-
-            }
+      
 
             // 使用Dapper對查詢進行分頁(Paginate)
             var (items, totalCount) = await context.BySqlGetPagedWithCountAsync<dynamic>(
@@ -479,7 +501,7 @@ namespace CustomerFeedbackSystem.Controllers
             // 即使無資料，也要確認標題存在
             List<Dictionary<string, object>> result = items?.Select(item =>
                 (item as IDictionary<string, object>)?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-            ).ToList() ?? new List<Dictionary<string, object>>();
+            ).ToList() ?? [];
 
             // Pass data to ViewData
             ViewData["totalCount"] = totalCount;
@@ -572,10 +594,10 @@ namespace CustomerFeedbackSystem.Controllers
             }
 
             // Keywords
-            if (false && !string.IsNullOrWhiteSpace(queryModel.QuestionContent))
+            if (!string.IsNullOrWhiteSpace(queryModel.QuestionContent))
             {
                 // assuming the column is question_content (adjust if yours differs)
-                whereClauses.Add("question_content LIKE @QuestionContent");
+                whereClauses.Add("Content LIKE @QuestionContent");
                 parameters.Add("QuestionContent", $"%{queryModel.QuestionContent.Trim()}%");
             }
 
@@ -583,7 +605,7 @@ namespace CustomerFeedbackSystem.Controllers
             if (false && !string.IsNullOrWhiteSpace(queryModel.ResponseContent))
             {
                 // assuming the column is response_content (adjust if yours differs)
-                whereClauses.Add("response_content LIKE @ResponseContent");
+                whereClauses.Add("Content LIKE @ResponseContent");
                 parameters.Add("ResponseContent", $"%{queryModel.ResponseContent.Trim()}%");
             }
 
@@ -594,28 +616,28 @@ namespace CustomerFeedbackSystem.Controllers
             if (queryModel.SubmittedDateStart.HasValue)
             {
                 var start = queryModel.SubmittedDateStart.Value.Date;
-                whereClauses.Add("submitted_date >= @SubmittedDateStart");
+                whereClauses.Add("SubmittedDate >= @SubmittedDateStart");
                 parameters.Add("SubmittedDateStart", start);
             }
 
             if (queryModel.SubmittedDateEnd.HasValue)
             {
                 var endExclusive = queryModel.SubmittedDateEnd.Value.Date.AddDays(1);
-                whereClauses.Add("submitted_date < @SubmittedDateEndExclusive");
+                whereClauses.Add("SubmittedDate < @SubmittedDateEndExclusive");
                 parameters.Add("SubmittedDateEndExclusive", endExclusive);
             }
 
             if (queryModel.ClosedDateStart.HasValue)
             {
                 var start = queryModel.ClosedDateStart.Value.Date;
-                whereClauses.Add("closed_date >= @ClosedDateStart");
+                whereClauses.Add("ClosedDate >= @ClosedDateStart");
                 parameters.Add("ClosedDateStart", start);
             }
 
             if (queryModel.ClosedDateEnd.HasValue)
             {
                 var endExclusive = queryModel.ClosedDateEnd.Value.Date.AddDays(1);
-                whereClauses.Add("closed_date < @ClosedDateEndExclusive");
+                whereClauses.Add("ClosedDate < @ClosedDateEndExclusive");
                 parameters.Add("ClosedDateEndExclusive", endExclusive);
             }
 
