@@ -1,6 +1,7 @@
 ﻿using CustomerFeedbackSystem.Models;
 using Dapper;
 using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -184,8 +185,45 @@ namespace CustomerFeedbackSystem.Controllers
         [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
         public IActionResult Create()
         {
-            return View(new Feedback());
+            return View(new Feedback
+            {
+                SubmittedByName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name,
+                SubmittedByEmail = "test@company.local",
+                SubmittedOrg = "單位待補", // or real claim
+                SubmittedByRole = "提問者",
+                Status = "新建"
+            });
         }
+
+        /// <summary>
+        /// 產生日期相關的提問單流水號
+        /// </summary>
+        /// <returns></returns>
+        private async Task<string> NextFeedBackNo()
+        {
+            var today = DateTime.Today.ToString("yyyyMMdd");
+            var prefix = $"FB-{today}-";
+
+            // Pull only today's feedback numbers into memory
+            var numbersToday = await context.Feedbacks
+                .AsNoTracking()
+                .Where(f => f.FeedbackNo.StartsWith(prefix))
+                .Select(f => f.FeedbackNo)
+                .ToListAsync();
+
+            var maxSeq = numbersToday
+                .Select(no =>
+                {
+                    var part = no.Substring(prefix.Length);
+                    return int.TryParse(part, out var n) ? (int?)n : null;
+                })
+                .Max();
+
+            var nextSeq = (maxSeq ?? 0) + 1;
+
+            return $"{prefix}{nextSeq:000}";
+        }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -197,11 +235,11 @@ namespace CustomerFeedbackSystem.Controllers
         {
             QueryableExtensions.TrimStringProperties(feedback);
 
-            if (!ModelState.IsValid)
-                return View(feedback);
-
+            feedback.CreatedAt = DateTime.Now;
             feedback.SubmittedDate = DateTime.Now;
             feedback.Status ??= "Open";
+
+            feedback.FeedbackNo = await NextFeedBackNo();
 
             context.Feedbacks.Add(feedback);
             await context.SaveChangesAsync(); // need FeedbackId + FeedbackNo
