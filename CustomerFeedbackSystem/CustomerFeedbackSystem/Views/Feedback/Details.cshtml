@@ -85,8 +85,6 @@
             </div>
         </div>
 
-        <hr />
-
         <!-- 附件（顯示區，未實作下載） -->
         <div class="row mb-4">
             <label class="col-md-2 col-form-label text-md-end text-start">
@@ -114,7 +112,6 @@
             </div>
         </div>
 
-        <hr />
 
         <!-- 回覆紀錄 -->
         <div class="row mb-3">
@@ -148,11 +145,104 @@
             </div>
         </div>
 
+        <hr />
+
+        <!-- 新增回覆 -->
+        <form asp-action="CreateReply"
+              asp-controller="Feedback"
+              method="post"
+              enctype="multipart/form-data"
+              id="feedbackReplyForm">
+
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="FeedbackId" value="@Model.FeedbackId" />
+
+            <div class="row mb-3">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>新增回覆</strong>
+                </label>
+
+                <div class="col-md-10">
+                    <textarea name="Content"
+                              class="form-control reply-editor"
+                              rows="5"
+                              placeholder="請輸入回覆內容…"></textarea>
+                </div>
+            </div>
+
+            <!-- 回覆附件 -->
+            <div class="row mb-4">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>附件</strong>
+                </label>
+
+                <div class="col-md-10">
+                    <div class="border rounded p-3 bg-light">
+                        <input type="file"
+                               name="Files"
+                               multiple
+                               class="form-control" />
+
+                        <small class="text-muted d-block mt-2">
+                            可上傳多個檔案（將與本次回覆一起儲存）
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作 -->
+            <div class="row mb-4">
+                <div class="col-12 d-flex justify-content-center gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>送出回覆
+                    </button>
+
+                    <button type="reset" class="btn btn-secondary">
+                        清除
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+
     </div>
 </div>
 
 @section PageScripts {
+    <script src="~/js/tinymce/tinymce.min.js"
+            nonce="@ViewBag.CspNonce"></script>
+
     <script nonce="@ViewBag.CspNonce">
-        // Details page intentionally passive
+        $(document).ready(function () {
+
+            tinymce.init({
+                base_url: '/js/tinymce',
+                license_key: 'gpl',
+                suffix: '.min',
+                selector: '.reply-editor',
+                height: 300,
+                menubar: false,
+                branding: false,
+                plugins: [
+                    'lists',
+                    'link',
+                    'table',
+                    'code'
+                ],
+                toolbar:
+                    'undo redo | ' +
+                    'bold italic underline | ' +
+                    'bullist numlist | ' +
+                    'link table | ' +
+                    'code',
+                content_style:
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
+            });
+
+            $('#feedbackReplyForm').on('submit', function () {
+                tinymce.triggerSave();
+            });
+        });
     </script>
 }
