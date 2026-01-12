@@ -13,7 +13,7 @@ namespace CustomerFeedbackSystem.Controllers
     /// <param name="context">資料庫查詢物件</param>
     /// <param name="hostingEnvironment">網站環境變數</param>
     [Authorize(Roles = FeedbackRoleStrings.Anyone)]
-    public class FeedbackController(DocControlContext context, IWebHostEnvironment hostingEnvironment) : BaseController(context, hostingEnvironment)
+    public class FeedbackController(DocControlContext context, IWebHostEnvironment hostingEnvironment, IConfiguration configuration) : BaseController(context, hostingEnvironment)
     {
 
         /// <summary>
@@ -118,6 +118,9 @@ namespace CustomerFeedbackSystem.Controllers
         [Route("[controller]/Details/{id:int}")]
         public async Task<IActionResult> Details(int id)
         {
+            // =======================
+            // 1. Load main feedback
+            // =======================
             var feedback = await context.Feedbacks
                 .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.FeedbackId == id);
@@ -127,8 +130,48 @@ namespace CustomerFeedbackSystem.Controllers
                 return NotFound();
             }
 
+            // =======================
+            // 2. Load replies
+            // =======================
+            var replies = await context.FeedbackResponses
+                .AsNoTracking()
+                .Where(r => r.FeedbackId == id)
+                .OrderBy(r => r.CreatedAt)
+                .ToListAsync();
+
+            // =======================
+            // 3. Load attachments
+            // =======================
+            var attachments = await context.FeedbackAttachments
+                .AsNoTracking()
+                .Where(a => a.FeedbackId == id)
+                .OrderBy(a => a.UploadedAt)
+                .ToListAsync();
+
+            // =======================
+            // 4. Partition attachments
+            // =======================
+
+            // Question-level attachments (no reply id)
+            var questionAttachments = attachments
+                .Where(a => a.ResponseId == null)
+                .ToList();
+
+            // Reply-level attachments (grouped by reply id)
+            var replyAttachments = attachments
+                .Where(a => a.ResponseId != null)
+                .ToLookup(a => a.ResponseId!.Value);
+
+            // =======================
+            // 5. Pass to View
+            // =======================
+            ViewData["Replies"] = replies;
+            ViewData["Attachments"] = questionAttachments;
+            ViewData["ReplyAttachments"] = replyAttachments;
+
             return View(feedback);
         }
+
 
         [HttpGet]
         [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
@@ -137,10 +180,19 @@ namespace CustomerFeedbackSystem.Controllers
             return View(new Feedback());
         }
 
+        /// <summary>
+        /// 新增提問單
+        /// </summary>
+        /// <param name="feedback"></param>
+        /// <param name="attachments"></param>
+        /// <returns></returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
-        public async Task<IActionResult> Create(Feedback feedback)
+        public async Task<IActionResult> Create(
+            Feedback feedback,
+            List<IFormFile>? attachments
+        )
         {
             QueryableExtensions.TrimStringProperties(feedback);
 
@@ -153,11 +205,134 @@ namespace CustomerFeedbackSystem.Controllers
             feedback.Status ??= "Open";
 
             context.Feedbacks.Add(feedback);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(); // 🔑 need FeedbackId & FeedbackNo
+
+            // =======================
+            // Attachment handling
+            // =======================
+
+            if (attachments is { Count: > 0 })
+            {
+                var rootUploadPath = Path.Combine(
+                    hostingEnvironment.ContentRootPath,
+                    configuration["UploadSettings:UploadPath"]!
+                );
+
+                var feedbackFolder = Path.Combine(rootUploadPath, feedback.FeedbackNo);
+                Directory.CreateDirectory(feedbackFolder);
+
+                foreach (var file in attachments.Where(f => f.Length > 0))
+                {
+                    var safeFileName = Path.GetFileName(file.FileName);
+                    var fullPath = Path.Combine(feedbackFolder, safeFileName);
+
+                    // Optional collision handling
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        fullPath = Path.Combine(
+                            feedbackFolder,
+                            $"{Path.GetFileNameWithoutExtension(safeFileName)}_{DateTime.Now:HHmmss}{Path.GetExtension(safeFileName)}"
+                        );
+                    }
+
+                    using var stream = System.IO.File.Create(fullPath);
+                    await file.CopyToAsync(stream);
+
+                    context.FeedbackAttachments.Add(new FeedbackAttachment
+                    {
+                        FeedbackId = feedback.FeedbackId,
+                        FileName = safeFileName,
+                         UploadedAt = DateTime.Now, 
+                    });
+                }
+
+                await context.SaveChangesAsync();
+            }
 
             return DismissModal("提問單新增成功");
         }
 
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("[controller]/Reply/{id:int}")]
+        [Authorize(Roles = FunctionRoleStrings.回覆者 + "," + AdminRoleStrings.系統管理者)]
+        public async Task<IActionResult> Reply(
+            int id,
+            FeedbackResponse response,
+            List<IFormFile>? attachments
+        )
+        {
+            QueryableExtensions.TrimStringProperties(response);
+
+            var feedback = await context.Feedbacks.FindAsync(id);
+            if (feedback == null)
+                return NotFound();
+
+            response.FeedbackId = id;
+            response.ResponseDate = DateTime.Now;
+
+            //查 employee 填滿這裡的資料
+            response.ResponderName = User.Identity!.Name!;
+
+            context.FeedbackResponses.Add(response);
+            await context.SaveChangesAsync(); // 🔑 need FeedbackResponseId
+
+            // =======================
+            // Attachments (reply-level)
+            // =======================
+
+            if (attachments is { Count: > 0 })
+            {
+                var rootUploadPath = Path.Combine(
+                    hostingEnvironment.ContentRootPath,
+                    configuration["UploadSettings:UploadPath"]!
+                );
+
+                var feedbackFolder = Path.Combine(rootUploadPath, feedback.FeedbackNo);
+                Directory.CreateDirectory(feedbackFolder);
+
+                foreach (var file in attachments.Where(f => f.Length > 0))
+                {
+                    var safeFileName = Path.GetFileName(file.FileName);
+                    var fullPath = Path.Combine(feedbackFolder, safeFileName);
+
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        fullPath = Path.Combine(
+                            feedbackFolder,
+                            $"{Path.GetFileNameWithoutExtension(safeFileName)}_{DateTime.Now:HHmmss}{Path.GetExtension(safeFileName)}"
+                        );
+                    }
+
+                    using var stream = System.IO.File.Create(fullPath);
+                    await file.CopyToAsync(stream);
+
+                    context.FeedbackAttachments.Add(new FeedbackAttachment
+                    {
+                        FeedbackId = id,
+                        ResponseId = response.ResponseId,
+                        FileName = safeFileName,
+                        //FilePath = fullPath,
+
+                         UploadedAt = DateTime.Now,
+                    });
+                }
+
+                await context.SaveChangesAsync();
+            }
+
+            return DismissModal("回覆已送出");
+        }
+
+
+
+        /// <summary>
+        /// 編輯提問 (不是回復)
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("[controller]/Edit/{id:int}")]
         [Authorize(Roles = AdminRoleStrings.系統管理者)]
@@ -172,6 +347,12 @@ namespace CustomerFeedbackSystem.Controllers
             return View(feedback);
         }
 
+        /// <summary>
+        /// 儲存編輯
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("[controller]/Edit/{id:int}")]
@@ -307,69 +488,144 @@ namespace CustomerFeedbackSystem.Controllers
             return View(result);
         }
 
-        /// <summary>
-        /// 查詢SQL
-        /// </summary>
-        /// <param name="queryModel">查詢model</param>
-        /// <param name="parameters">輸出查詢參數</param>
-        /// <param name="sqlQuery">輸出查詢SQL</param>
         private static void BuildQueryFeedback(FeedbackQueryModel queryModel, out DynamicParameters parameters, out string sqlQuery)
         {
             var headerNames = TableHeaders.Where(s => s.Key != "RowNum").Select(s => s.Key);
 
             sqlQuery = $@"
-                SELECT 
-                   {string.Join(",", headerNames)}
-                FROM 
-                   [Feedback]
-                WHERE 1=1
-            ";
+        SELECT 
+           {string.Join(",", headerNames)}
+        FROM 
+           [Feedback]
+        WHERE 1=1
+    ";
 
             parameters = new DynamicParameters();
             var whereClauses = new List<string>();
 
-            // please continue the pattern below and use the date ranges supplied for the sql. for dates, if supplied, parse the datetime value and add 1 to the end date and make it less than tomorrow)
-            if (!string.IsNullOrEmpty(queryModel.QuestionContent))
+            // ========= Simple equality / LIKE filters =========
+
+            if (queryModel.ItemNo.HasValue)
             {
-                //first example
-                whereClauses.Add("reassess_result = @QuestionContent");
-                parameters.Add("QualifiedStatus", queryModel.QuestionContent);
+                whereClauses.Add("item_no = @ItemNo");
+                parameters.Add("ItemNo", queryModel.ItemNo.Value);
             }
 
-#if false
-            public class FeedbackQueryModel : Pagination
-    {
-        public int? ItemNo { get; set;  } = default(int?);
-        public string? FeedbackNo { get; set; }
-        public string? Company { get; set; } // 公司別 三趨/甲方
-        public string OrgName { get; set; } // 提單人所屬單位
-        public string? SubmittedByRole { get; set; } // 提單人角色
+            if (!string.IsNullOrWhiteSpace(queryModel.FeedbackNo))
+            {
+                whereClauses.Add("feedback_no LIKE @FeedbackNo");
+                parameters.Add("FeedbackNo", $"%{queryModel.FeedbackNo.Trim()}%");
+            }
 
-        public string? SubmittedByName { get; set; } // 提單人姓名
+            if (!string.IsNullOrWhiteSpace(queryModel.Company))
+            {
+                whereClauses.Add("company = @Company");
+                parameters.Add("Company", queryModel.Company.Trim());
+            }
 
-        public DateTime? SubmittedDateStart { get; set; } // 提單日期 起
-        public DateTime? SubmittedDateEnd { get; set; } // 提單日期 訖
-        public string? Urgency { get; set; } // 優先/急迫性 (低中高) 非普通/急/非常急 (UI上可多選)
-        public string? Status { get; set; } // 狀態
+            if (!string.IsNullOrWhiteSpace(queryModel.OrgName))
+            {
+                // OrgName in your model isn't nullable, but still guard it.
+                whereClauses.Add("submitted_org LIKE @OrgName");
+                parameters.Add("OrgName", $"%{queryModel.OrgName.Trim()}%");
+            }
 
-        public DateTime? ClosedDateStart { get; set; }
-        public DateTime? ClosedDateEnd { get; set; }
+            if (!string.IsNullOrWhiteSpace(queryModel.SubmittedByRole))
+            {
+                whereClauses.Add("submitted_by_role = @SubmittedByRole");
+                parameters.Add("SubmittedByRole", queryModel.SubmittedByRole.Trim());
+            }
 
-        public string? QuestionContent { get; set; } // 提問內容 關鍵字
-        public string? ResponseContent { get; set; } // 回復內容 關鍵字
+            if (!string.IsNullOrWhiteSpace(queryModel.SubmittedByName))
+            {
+                whereClauses.Add("submitted_by_name LIKE @SubmittedByName");
+                parameters.Add("SubmittedByName", $"%{queryModel.SubmittedByName.Trim()}%");
+            }
 
-    }
+            if (!string.IsNullOrWhiteSpace(queryModel.Status))
+            {
+                whereClauses.Add("status = @Status");
+                parameters.Add("Status", queryModel.Status.Trim());
+            }
 
-#endif
+            // Urgency: you said UI can multi-select. Common approach: comma-separated string coming in.
+            // We'll support either single value or "a,b,c" list.
+            if (!string.IsNullOrWhiteSpace(queryModel.Urgency))
+            {
+                var urgencies = queryModel.Urgency
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct()
+                    .ToArray();
 
+                if (urgencies.Length == 1)
+                {
+                    whereClauses.Add("urgency = @Urgency");
+                    parameters.Add("Urgency", urgencies[0]);
+                }
+                else if (urgencies.Length > 1)
+                {
+                    whereClauses.Add("urgency IN @Urgencies");
+                    parameters.Add("Urgencies", urgencies);
+                }
+            }
 
-            // Add whereClauses to the SQL query if they exist
+            // Keywords
+            if (false && !string.IsNullOrWhiteSpace(queryModel.QuestionContent))
+            {
+                // assuming the column is question_content (adjust if yours differs)
+                whereClauses.Add("question_content LIKE @QuestionContent");
+                parameters.Add("QuestionContent", $"%{queryModel.QuestionContent.Trim()}%");
+            }
+
+            //need to join replycontent first
+            if (false && !string.IsNullOrWhiteSpace(queryModel.ResponseContent))
+            {
+                // assuming the column is response_content (adjust if yours differs)
+                whereClauses.Add("response_content LIKE @ResponseContent");
+                parameters.Add("ResponseContent", $"%{queryModel.ResponseContent.Trim()}%");
+            }
+
+            // ========= Date ranges (inclusive start, exclusive end+1day) =========
+            // Note: "parse the datetime value" — if these are already DateTime?, we still normalize to Date.
+            // If you actually store full datetime and want time-sensitive, remove .Date.
+
+            if (queryModel.SubmittedDateStart.HasValue)
+            {
+                var start = queryModel.SubmittedDateStart.Value.Date;
+                whereClauses.Add("submitted_date >= @SubmittedDateStart");
+                parameters.Add("SubmittedDateStart", start);
+            }
+
+            if (queryModel.SubmittedDateEnd.HasValue)
+            {
+                var endExclusive = queryModel.SubmittedDateEnd.Value.Date.AddDays(1);
+                whereClauses.Add("submitted_date < @SubmittedDateEndExclusive");
+                parameters.Add("SubmittedDateEndExclusive", endExclusive);
+            }
+
+            if (queryModel.ClosedDateStart.HasValue)
+            {
+                var start = queryModel.ClosedDateStart.Value.Date;
+                whereClauses.Add("closed_date >= @ClosedDateStart");
+                parameters.Add("ClosedDateStart", start);
+            }
+
+            if (queryModel.ClosedDateEnd.HasValue)
+            {
+                var endExclusive = queryModel.ClosedDateEnd.Value.Date.AddDays(1);
+                whereClauses.Add("closed_date < @ClosedDateEndExclusive");
+                parameters.Add("ClosedDateEndExclusive", endExclusive);
+            }
+
+            // ========= Apply =========
             if (whereClauses.Any())
             {
                 sqlQuery += " AND " + string.Join(" AND ", whereClauses);
             }
-
         }
+
 
 
     }

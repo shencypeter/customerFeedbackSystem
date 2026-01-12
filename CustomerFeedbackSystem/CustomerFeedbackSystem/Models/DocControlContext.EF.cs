@@ -210,15 +210,12 @@ namespace CustomerFeedbackSystem.Models
                     .IsRequired()
                     .HasMaxLength(20);
 
-                entity.Property(e => e.FileSizeBytes);
 
                 entity.Property(e => e.StorageKey)
                     .IsRequired()
                     .HasMaxLength(500);
 
-                entity.Property(e => e.UploadedByRole)
-                    .IsRequired()
-                    .HasMaxLength(10);
+     
 
                 entity.Property(e => e.UploadedByName)
                     .IsRequired()

@@ -79,7 +79,7 @@ namespace CustomerFeedbackSystem.Controllers
         {
             public const string 三趨 = "三趨(乙方)";
             public const string 客戶 = "客戶(甲方)";
-            public const string Anyone = $"{三趨},{客戶}";
+            public const string Anyone = $"{三趨},{客戶},{AdminRoleStrings.系統管理者}";
         }
 
 
@@ -99,11 +99,12 @@ namespace CustomerFeedbackSystem.Controllers
             public const string Anyone = $"{請購人},{採購人},{評核人}";
         }
 
+        //原登入後要切兩個不同系統別
         public static readonly PageLink[] SystemPages =
         [            
             new PageLink { Controller = "Feedback",  Label = "提問單" , Roles = [FeedbackRoleStrings.Anyone] },
-            //new PageLink { Controller = "Purchase", Label = "電子採購" , Roles = [PurchaseRoleStrings.Anyone] },
-            //new PageLink { Controller = "Control",  Label = "文件管理" , Roles = [DocRoleStrings.Anyone] },
+            new PageLink { Controller = "AccountSettings", Label = "帳號設定", Roles = [AdminRoleStrings.系統管理者] },
+            new PageLink { Controller = "Settings", Label = "系統設定", Roles = [AdminRoleStrings.系統管理者] }
         ];
 
         public static readonly PageLink[] AccountPages =
@@ -114,7 +115,8 @@ namespace CustomerFeedbackSystem.Controllers
         public static readonly PageLink[] FeedbackPages =
         [
             new PageLink { Controller = "Feedback", Label = "提問單", Roles = [FeedbackRoleStrings.Anyone] },
-            //new PageLink { Controller = "AccountSettings", Label = "帳號設定", Roles = [AdminRoleStrings.系統管理者] }
+            new PageLink { Controller = "AccountSettings", Label = "帳號設定", Roles = [AdminRoleStrings.系統管理者] },
+            new PageLink { Controller = "Settings", Label = "系統設定", Roles = [AdminRoleStrings.系統管理者] }
         ];
 
 

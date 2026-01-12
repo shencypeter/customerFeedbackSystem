@@ -74,6 +74,47 @@ namespace CustomerFeedbackSystem
             // 建立web應用程式
             var appWeb = builderWeb.Build();
 
+
+
+            // ==============================================
+            // 檢查上傳目錄是否存在及可寫入
+            // ==============================================
+
+            try
+            {
+                var uploadRelativePath = builderWeb.Configuration["UploadSettings:UploadPath"];
+
+                if (string.IsNullOrWhiteSpace(uploadRelativePath))
+                    throw new InvalidOperationException("UploadSettings:UploadPath is not configured.");
+
+                var uploadFullPath = Path.Combine(
+                    appWeb.Environment.ContentRootPath,
+                    uploadRelativePath
+                );
+
+                // 1. Ensure directory exists
+                if (!Directory.Exists(uploadFullPath))
+                {
+                    Directory.CreateDirectory(uploadFullPath);
+                }
+
+                // 2. Write permission test (atomic & disposable)
+                var testFile = Path.Combine(uploadFullPath, $".write_test_{Guid.NewGuid():N}.tmp");
+
+                await File.WriteAllTextAsync(testFile, "permission check");
+                File.Delete(testFile);
+
+                // Optional: log success
+                appWeb.Logger.LogInformation("Upload folder ready: {Path}", uploadFullPath);
+            }
+            catch (Exception ex)
+            {
+                // Fail fast — uploads without write access is a broken system
+                appWeb.Logger.LogCritical(ex, "Upload folder initialization failed");
+                throw;
+            }
+
+
             // 自訂Headers
             appWeb.UseForwardedHeaders(new ForwardedHeadersOptions
             {
