@@ -4,10 +4,15 @@
     ViewData["Title"] = "回饋單－檢視";
     Layout = "_NoNavLayout";
 }
-@{
-    ViewData["Title"] = "回饋單－檢視";
-    Layout = "_NoNavLayout";
-}
+
+
+<style nonce="@ViewBag.CspNonce">
+    /* TinyMCE validation state */
+    .reply-editor-wrapper.is-invalid .tox-tinymce {
+        border: 2px solid #dc3545;
+        border-radius: 6px;
+    }
+</style>
 
 <div class="m-4">
     <h4 class="m-3 px-2">
@@ -179,14 +184,20 @@
          
                 <div class="col-md-10">
                     <div id="replyValidationAlert"
-                         class="alert alert-warning d-none"
+                         class="alert alert-warning d-none w-50  text-left d-none"
                          role="alert">
                         請先輸入回覆內容，再送出 🙂
                     </div>
-                    <textarea name="Content" id="replyContent"
-                              class="form-control reply-editor"
-                              rows="5"
-                              placeholder="@User.FindFirst("FullName")?.Value?.Trim() 說: (回覆內容為必填!)" required></textarea>
+                    
+
+                    <div class="reply-editor-wrapper">
+                        <textarea name="Content"
+                                  id="replyContent"
+                                  class="form-control reply-editor"
+                                  rows="5"
+                                  placeholder="@User.FindFirst("FullName")?.Value?.Trim() 說: (回覆內容為必填!)">
+                        </textarea>
+                    </div>
                 </div>
             </div>
 
@@ -269,7 +280,7 @@
             nonce="@ViewBag.CspNonce"></script>
 
     <script nonce="@ViewBag.CspNonce">
-        $(document).ready(function () {
+        $(function () {
 
             tinymce.init({
                 base_url: '/js/tinymce',
@@ -284,31 +295,47 @@
                     'undo redo | bold italic underline | ' +
                     'bullist numlist | link table | code',
                 content_style:
-                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }',
+
+                setup: function (editor) {
+
+                    // Clear error as soon as user types (REGISTER ONCE)
+                    editor.on('input', function () {
+                        const text = editor.getContent({ format: 'text' }).trim();
+                        if (text) {
+                            $('#replyValidationAlert').addClass('d-none');
+                            $('.reply-editor-wrapper').removeClass('is-invalid');
+                        }
+                    });
+                }
             });
 
             $('#feedbackReplyForm').on('submit', function (e) {
 
-                const editor = tinymce.get($('.reply-editor').attr('id'));
-
-                // Normalize content: strip tags & whitespace
+                const editor = tinymce.get('replyContent');
                 const plainText = editor.getContent({ format: 'text' }).trim();
+                const wrapper = $('.reply-editor-wrapper');
 
                 if (!plainText) {
                     e.preventDefault();
 
-                    $('#replyValidationAlert').removeClass('d-none');
+                    $('#replyValidationAlert')
+                        .removeClass('d-none')
+                        .get(0)
+                        .scrollIntoView({ behavior: 'smooth', block: 'center' });
 
+                    wrapper.addClass('is-invalid');
                     editor.focus();
-                    editor.selection.select(editor.getBody(), true);
-                    editor.selection.collapse(false);
-
                     return false;
                 }
 
-                // Sync editor → textarea for normal posting
+                // Clean state
+                $('#replyValidationAlert').addClass('d-none');
+                wrapper.removeClass('is-invalid');
+
                 tinymce.triggerSave();
             });
         });
     </script>
+
 }
