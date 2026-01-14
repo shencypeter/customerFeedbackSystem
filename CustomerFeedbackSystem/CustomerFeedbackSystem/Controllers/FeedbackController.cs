@@ -106,7 +106,7 @@ namespace CustomerFeedbackSystem.Controllers
         public IActionResult Index(FeedbackQueryModel queryModel)
         {
             // 結案日期
-            (queryModel.ClosedDateStart, queryModel.ClosedDateEnd) = 
+            (queryModel.ClosedDateStart, queryModel.ClosedDateEnd) =
                 GetOrderedDates(queryModel.ClosedDateStart, queryModel.ClosedDateEnd);
 
             //提問日期
@@ -189,9 +189,12 @@ namespace CustomerFeedbackSystem.Controllers
             {
                 SubmittedByName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name,
                 SubmittedByEmail = "test@company.local",
-                SubmittedOrg = "單位待補", // or real claim
+
+                //這邊要修改成產品功能模組
+                SubmittedOrg = "單位待補",
                 SubmittedByRole = "提問者",
-                Status = "新建"
+
+                Status = "待回覆" //沒有任何回覆的初始狀態
             });
         }
 
@@ -284,7 +287,7 @@ namespace CustomerFeedbackSystem.Controllers
         }
 
         /// <summary>
-        /// 🔗按照附件ID 取得檔案
+        /// 🔗下載附件
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -323,16 +326,14 @@ namespace CustomerFeedbackSystem.Controllers
         }
 
 
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("[controller]/Reply/{id:int}")]
         [Authorize(Roles = FunctionRoleStrings.回覆者 + "," + AdminRoleStrings.系統管理者)]
-        public async Task<IActionResult> Reply(
-    int id,
-    FeedbackResponse response,
-    List<IFormFile>? attachments
-)
+        public async Task<IActionResult> Reply(int id,
+                                                FeedbackResponse response,
+                                                List<IFormFile>? attachments
+                                            )
         {
             QueryableExtensions.TrimStringProperties(response);
 
@@ -340,6 +341,9 @@ namespace CustomerFeedbackSystem.Controllers
             if (feedback == null)
                 return NotFound();
 
+            // --------------------------------------------------
+            // Snapshot responder info
+            // --------------------------------------------------
             response.FeedbackId = id;
             response.ResponseDate = DateTime.Now;
             response.CreatedAt = DateTime.Now;
@@ -347,16 +351,43 @@ namespace CustomerFeedbackSystem.Controllers
             response.ResponderName = User.Identity!.Name!;
             response.ResponderEmail =
                 User.FindFirst("Email")?.Value ?? $"{User.Identity.Name}@company.local";
-
             response.ResponderOrg = "部門";
             response.ResponderRole = "回覆者";
 
-            feedback.Status = "已回復";
+            // --------------------------------------------------
+            // Status transition rules
+            // --------------------------------------------------
+
+            // Rule 1: Any reply reopens the case (no locks)
+            if (feedback.Status == "已結案")
+            {
+                feedback.Status = "處裡中";
+                feedback.ClosedDate = null; // 🔥 已結案收到新的回覆 重新打回處裡中
+            }
+
+            // Rule 2: 後端只有管理者或客戶可以結案
+            var canCloseCase =
+                User.IsInRole(FeedbackRoleStrings.客戶) ||
+                User.IsInRole(AdminRoleStrings.系統管理者);
+
+            if (response.CaseClosed && canCloseCase)
+            {
+                feedback.Status = "已結案";
+                feedback.ClosedDate = DateTime.Now;
+            }
+
+            // Record the resulting status in response history
             response.StatusAfterResponse = feedback.Status;
 
+            // --------------------------------------------------
+            // Persist response
+            // --------------------------------------------------
             context.FeedbackResponses.Add(response);
             await context.SaveChangesAsync(); // need ResponseId
 
+            // --------------------------------------------------
+            // 儲存附件
+            // --------------------------------------------------
             if (attachments is { Count: > 0 })
             {
                 var rootPath = Path.Combine(
@@ -371,10 +402,9 @@ namespace CustomerFeedbackSystem.Controllers
                 {
                     var originalName = Path.GetFileName(file.FileName);
                     var ext = Path.GetExtension(originalName);
-
                     var storageName = $"{Guid.NewGuid():N}{ext}";
-                    var physicalPath = Path.Combine(feedbackFolder, storageName);
 
+                    var physicalPath = Path.Combine(feedbackFolder, storageName);
                     using var stream = System.IO.File.Create(physicalPath);
                     await file.CopyToAsync(stream);
 
@@ -408,6 +438,10 @@ namespace CustomerFeedbackSystem.Controllers
         [Authorize(Roles = AdminRoleStrings.系統管理者)]
         public async Task<IActionResult> Edit(int id)
         {
+            return NoContent();
+
+
+            //請 user 使用回復功能補充內容 (本來就設定只有系統管理者可以用)
             var feedback = await context.Feedbacks.FindAsync(id);
             if (feedback == null)
             {
@@ -525,7 +559,7 @@ namespace CustomerFeedbackSystem.Controllers
             BuildQueryFeedback(queryModel, out var parameters, out var sqlQuery);
             FilterOrderBy(queryModel, TableHeaders, InitSort);
 
-      
+
 
             // 使用Dapper對查詢進行分頁(Paginate)
             var (items, totalCount) = await context.BySqlGetPagedWithCountAsync<dynamic>(

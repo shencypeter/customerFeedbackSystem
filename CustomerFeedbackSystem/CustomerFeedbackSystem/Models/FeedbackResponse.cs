@@ -50,4 +50,5 @@ public class FeedbackResponse
     public Feedback Feedback { get; set; } = null!;
 
     public ICollection<FeedbackAttachment> Attachments { get; set; } = new List<FeedbackAttachment>();
+    public bool CaseClosed { get; internal set; }
 }
