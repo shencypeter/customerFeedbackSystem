@@ -4,6 +4,12 @@
     ViewData["Title"] = "我要提問";
     Layout = "_NoNavLayout";
 }
+<style nonce="@ViewBag.CspNonce">
+    .editor-wrapper.is-invalid .tox-tinymce {
+        border: 2px solid #dc3545;
+        border-radius: 6px;
+    }
+</style>
 
 <div class="m-4">
     <h4 class="m-3 px-2">
@@ -85,7 +91,6 @@
                            value="@DateTime.Today.AddDays(14).ToString("yyyy-MM-dd")" />
                 </div>
             </div>
-
             <!-- Row 4：內容 -->
             <div class="row align-items-center my-3">
                 <label class="col-md-2 col-form-label text-md-end text-start">
@@ -94,10 +99,27 @@
                         @Html.DisplayNameFor(m => m.Content)：
                     </strong>
                 </label>
+
                 <div class="col-md-10">
-                    <textarea asp-for="Content"
-                              rows="5"
-                              class="form-control"></textarea>
+
+                    <!-- client-side alert (TinyMCE only) -->
+                    <div id="contentValidationAlert"
+                         class="alert alert-warning d-none w-50"
+                         role="alert">
+                        請先輸入內容，再送出 🙂
+                    </div>
+
+                    <!-- editor wrapper -->
+                    <div class="editor-wrapper">
+                        <textarea asp-for="Content"
+                                  id="contentEditor"
+                                  rows="5"
+                                  class="form-control editor"
+                                  placeholder="請輸入提問內容（必填）">
+            </textarea>
+                    </div>
+
+                    <!-- server-side validation -->
                     <span asp-validation-for="Content" class="text-danger"></span>
                 </div>
             </div>
@@ -135,7 +157,6 @@
         </div>
     </form>
 </div>
-
 @section PageScripts {
     <script src="~/js/tinymce/tinymce.min.js"
             nonce="@ViewBag.CspNonce"></script>
@@ -147,16 +168,11 @@
                 base_url: '/js/tinymce',
                 license_key: 'gpl',
                 suffix: '.min',
-                selector: 'textarea[name="Content"]',
+                selector: '.editor',
                 height: 380,
                 menubar: false,
                 branding: false,
-                plugins: [
-                    'lists',
-                    'link',
-                    'table',
-                    'code'
-                ],
+                plugins: ['lists', 'link', 'table', 'code'],
                 toolbar:
                     'undo redo | ' +
                     'bold italic underline | ' +
@@ -164,10 +180,44 @@
                     'link table | ' +
                     'code',
                 content_style:
-                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }'
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }',
+
+                setup: function (editor) {
+
+                    // clear invalid state as soon as user types
+                    editor.on('input', function () {
+                        const text = editor.getContent({ format: 'text' }).trim();
+                        if (text) {
+                            $('#contentValidationAlert').addClass('d-none');
+                            $('.editor-wrapper').removeClass('is-invalid');
+                        }
+                    });
+                }
             });
 
-            $('#feedbackCreateForm').on('submit', function () {
+            $('#feedbackCreateForm').on('submit', function (e) {
+
+                const editor = tinymce.get('contentEditor');
+                const plainText = editor.getContent({ format: 'text' }).trim();
+                const wrapper = $('.editor-wrapper');
+
+                if (!plainText) {
+                    e.preventDefault();
+
+                    $('#contentValidationAlert')
+                        .removeClass('d-none')
+                        .get(0)
+                        .scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    wrapper.addClass('is-invalid');
+                    editor.focus();
+                    return false;
+                }
+
+                // clean state
+                $('#contentValidationAlert').addClass('d-none');
+                wrapper.removeClass('is-invalid');
+
                 tinymce.triggerSave();
             });
         });
