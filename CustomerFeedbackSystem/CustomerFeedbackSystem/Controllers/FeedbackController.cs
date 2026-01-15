@@ -244,51 +244,23 @@ namespace CustomerFeedbackSystem.Controllers
 
             feedback.CreatedAt = DateTime.Now;
             feedback.SubmittedDate = DateTime.Now;
-            feedback.Status ??= "Open";
+            feedback.Status = "待回覆"; //new pending
 
             feedback.FeedbackNo = await NextFeedBackNo();
 
             context.Feedbacks.Add(feedback);
             await context.SaveChangesAsync(); // need FeedbackId + FeedbackNo
 
-            if (attachments is { Count: > 0 })
-            {
-                var rootPath = Path.Combine(
-                    hostingEnvironment.ContentRootPath,
-                    configuration["UploadSettings:UploadPath"]!
-                );
 
-                var feedbackFolder = Path.Combine(rootPath, feedback.FeedbackNo);
-                Directory.CreateDirectory(feedbackFolder);
-
-                foreach (var file in attachments.Where(f => f.Length > 0))
-                {
-                    var originalName = Path.GetFileName(file.FileName);
-                    var ext = Path.GetExtension(originalName);
-
-                    var storageName = $"{Guid.NewGuid():N}{ext}";
-                    var physicalPath = Path.Combine(feedbackFolder, storageName);
-
-                    using var stream = System.IO.File.Create(physicalPath);
-                    await file.CopyToAsync(stream);
-
-                    context.FeedbackAttachments.Add(new FeedbackAttachment
-                    {
-                        FeedbackId = feedback.FeedbackId,
-                        ResponseId = null,
-                        FileName = originalName,
-                        FileExtension = ext,
-                        StorageKey = Path.Combine(feedback.FeedbackNo, storageName),
-                        UploadedByName = User.Identity!.Name!,
-                        UploadedAt = DateTime.Now
-                    });
-                }
-
-                await context.SaveChangesAsync();
-            }
+            await SaveAttachmentsAsync(
+                feedback,
+                attachments
+            );
 
             return DismissModal("提問單新增成功");
         }
+
+       
 
         /// <summary>
         /// 🔗下載附件
@@ -298,7 +270,7 @@ namespace CustomerFeedbackSystem.Controllers
         [HttpGet]
         [Route("[controller]/Attachment/{id:int}")]
         [Authorize(Roles = FeedbackRoleStrings.Anyone)]
-        public async Task<IActionResult> Attachment(int id)
+        public async Task<IActionResult> DownloadFile(int id)
         {
             var attachment = await context.FeedbackAttachments
                 .AsNoTracking()
@@ -392,44 +364,66 @@ namespace CustomerFeedbackSystem.Controllers
             // --------------------------------------------------
             // 儲存附件
             // --------------------------------------------------
-            if (attachments is { Count: > 0 })
-            {
-                var rootPath = Path.Combine(
-                    hostingEnvironment.ContentRootPath,
-                    configuration["UploadSettings:UploadPath"]!
-                );
 
-                var feedbackFolder = Path.Combine(rootPath, feedback.FeedbackNo);
-                Directory.CreateDirectory(feedbackFolder);
-
-                foreach (var file in attachments.Where(f => f.Length > 0))
-                {
-                    var originalName = Path.GetFileName(file.FileName);
-                    var ext = Path.GetExtension(originalName);
-                    var storageName = $"{Guid.NewGuid():N}{ext}";
-
-                    var physicalPath = Path.Combine(feedbackFolder, storageName);
-                    using var stream = System.IO.File.Create(physicalPath);
-                    await file.CopyToAsync(stream);
-
-                    context.FeedbackAttachments.Add(new FeedbackAttachment
-                    {
-                        FeedbackId = id,
-                        ResponseId = response.ResponseId,
-                        FileName = originalName,
-                        FileExtension = ext,
-                        StorageKey = Path.Combine(feedback.FeedbackNo, storageName),
-                        UploadedByName = response.ResponderName,
-                        UploadedAt = DateTime.Now
-                    });
-                }
-
-                await context.SaveChangesAsync();
-            }
+            await SaveAttachmentsAsync(
+                feedback,
+                attachments,
+                responseId: response.ResponseId,
+                uploadedByName: response.ResponderName
+            );
 
             return DismissModal("回覆已送出");
         }
 
+       
+        /// <summary>
+        /// 儲存提問單的附件
+        /// </summary>
+        /// <param name="feedback"></param>
+        /// <param name="attachments"></param>
+        /// <param name="responseId"></param>
+        /// <param name="uploadedByName"></param>
+        /// <returns></returns>
+        private async Task SaveAttachmentsAsync(Feedback feedback,
+                                                List<IFormFile>? attachments,
+                                                int? responseId = null,
+                                                string? uploadedByName = null)
+        {
+            if (attachments is not { Count: > 0 })
+                return;
+
+            var rootPath = Path.Combine(
+                hostingEnvironment.ContentRootPath,
+                configuration["UploadSettings:UploadPath"]!
+            );
+
+            var feedbackFolder = Path.Combine(rootPath, feedback.FeedbackNo);
+            Directory.CreateDirectory(feedbackFolder);
+
+            foreach (var file in attachments.Where(f => f.Length > 0))
+            {
+                var originalName = Path.GetFileName(file.FileName);
+                var ext = Path.GetExtension(originalName);
+                var storageName = $"{Guid.NewGuid():N}{ext}";
+
+                var physicalPath = Path.Combine(feedbackFolder, storageName);
+                using var stream = System.IO.File.Create(physicalPath);
+                await file.CopyToAsync(stream);
+
+                context.FeedbackAttachments.Add(new FeedbackAttachment
+                {
+                    FeedbackId = feedback.FeedbackId,
+                    ResponseId = responseId,
+                    FileName = originalName,
+                    FileExtension = ext,
+                    StorageKey = Path.Combine(feedback.FeedbackNo, storageName),
+                    UploadedByName = uploadedByName ?? User.Identity!.Name!,
+                    UploadedAt = DateTime.Now
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
 
 
         /// <summary>
@@ -461,6 +455,7 @@ namespace CustomerFeedbackSystem.Controllers
         /// <param name="id"></param>
         /// <param name="model"></param>
         /// <returns></returns>
+        [Obsolete("提問單不可編輯, user 應使用回覆功能往來")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("[controller]/Edit/{id:int}")]
@@ -725,8 +720,6 @@ namespace CustomerFeedbackSystem.Controllers
 
 
         }
-
-
 
     }
 }
