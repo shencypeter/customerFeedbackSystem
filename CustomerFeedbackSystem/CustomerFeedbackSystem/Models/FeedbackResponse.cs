@@ -50,5 +50,10 @@ public class FeedbackResponse
     public Feedback Feedback { get; set; } = null!;
 
     public ICollection<FeedbackAttachment> Attachments { get; set; } = new List<FeedbackAttachment>();
+
+    /// <summary>
+    /// UI 結案標籤, 到 DB 端只要押日期
+    /// </summary>
+    [NotMapped]
     public bool CaseClosed { get; internal set; }
 }

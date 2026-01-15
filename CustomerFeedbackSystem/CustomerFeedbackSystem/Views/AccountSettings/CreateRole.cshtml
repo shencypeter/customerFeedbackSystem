@@ -1,0 +1,160 @@
+﻿@model CustomerFeedbackSystem.Models.CreateUser
+
+@{
+    ViewData["Title"] = "帳號設定－應用群組管理";
+    Layout = "_NoNavLayout";
+
+    var allRoles = ViewData["AllRoles"] as List<Role> ?? new();
+    var rolesByGroup = allRoles
+        .GroupBy(r => r.RoleGroup)
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    int roleIndex = 0;
+}
+
+<div class="m-4">
+    <h4 class="m-3 px-2">
+        <i class="bi bi-gear-fill me-2"></i>@ViewData["Title"]
+    </h4>
+
+    <div class="pop">
+
+
+
+        <!-- ========================= -->
+        <!-- ③ Add new app group      -->
+        <!-- ========================= -->
+        <form method="post"
+              asp-action="CreateGroup"
+              asp-controller="AccountSettings">
+
+            @Html.AntiForgeryToken()
+
+            <div class="row my-3 align-items-center">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>新增群組</strong>
+                </div>
+                <div class="col-md-6">
+                    <input type="text"
+                           name="NewGroupName"
+                           class="form-control"
+                           placeholder="輸入新的應用群組名稱"
+                           required />
+                </div>
+                <div class="col-md-4 text-start mt-2 mt-md-0">
+                    <button type="submit"
+                            class="btn2 btn-primary">
+                        <i class="fas fa-plus-circle"></i>&ensp;新增群組
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <hr />
+        <!-- ========================= -->
+        <!-- ① Rename existing groups -->
+        <!-- ========================= -->
+        <form method="post"
+              asp-action="RenameGroups"
+              asp-controller="AccountSettings">
+
+            @Html.AntiForgeryToken()
+
+            <div class="row my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>重新命名群組</strong>
+                </div>
+                <div class="col-md-10">
+
+                    @foreach (var group in rolesByGroup)
+                    {
+                            foreach(var item in group)
+                            {
+                                var groupName = item.RoleName.Split('|')[0];
+                                <div class="input-group mb-2">
+                                <span class="input-group-text">@groupName</span>
+                                    <input type="text"
+                                       name="GroupRename[@groupName]"
+                                           class="form-control"
+                                       placeholder="重新命名為..." />
+                                </div>
+                            }
+                
+                    }
+
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col-12 text-center">
+                    <button type="submit"
+                            class="btn2 btn-success col-6 col-md-3">
+                        <i class="fas fa-save"></i>&ensp;儲存重新命名
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <hr />
+
+        <!-- ========================= -->
+        <!-- ② Delete checked roles   -->
+        <!-- ========================= -->
+        <form method="post"
+              asp-action="DeleteRoles"
+              asp-controller="AccountSettings">
+
+            @Html.AntiForgeryToken()
+
+            <div class="row my-3">
+                <div class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>角色管理</strong>
+                </div>
+                <div class="col-md-10">
+
+                    @foreach (var group in rolesByGroup)
+                    {
+                        <div class="mb-3">
+                            <div class="fw-bold mb-1">【@group.Key】</div>
+
+                            <div class="row">
+                                @foreach (var role in group)
+                                {
+                                    string checkboxId = $"role{roleIndex++}";
+
+                                    <div class="col-md-6">
+                                        <div class="form-check text-start">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="RoleNames"
+                                                   value="@role.RoleName"
+                                                   id="@checkboxId" />
+                                            <label class="form-check-label" for="@checkboxId">
+                                                @role.RoleName
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <div class="row my-3">
+                <div class="col-12 text-center">
+                    <button type="submit"
+                            class="btn2 btn-danger col-6 col-md-3"
+                            onclick="return confirm('確定要刪除已勾選的項目？此動作無法復原。');">
+                        <i class="fas fa-trash-alt"></i>&ensp;刪除已勾選項目
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        
+
+    </div>
+</div>

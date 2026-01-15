@@ -54,17 +54,25 @@
                         </div>
                     </div>
 
+                    @{
+                        var appGroup = ViewData["AppGroup"] as SelectOption[]
+                        ?? Array.Empty<SelectOption>();
+                    }
+
                     <!-- Row 2：公司別 / 提單單位 -->
                     <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
                         <div class="col">
                             <div class="row g-2 align-items-center">
-                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">公司別：</label>
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">功能組別：</label>
                                 <div class="col-12 col-sm-8">
-                                    <input type="text"
-                                           class="form-control"
-                                           name="@nameof(queryModel.Company)"
-                                           value="@queryModel.Company"
-                                           placeholder="三趨 / 甲方" />
+                                    <select id="appGroupList" class="form-select" name="@nameof(queryModel.AppGroup)">
+                                        <option>全部</option>
+                                        @foreach (var module in appGroup)
+                                        {
+                                            <option value="@module.OptionValue">@module.OptionValue</option>
+                                        }
+                                    </select>
+                            
                                 </div>
                             </div>
                         </div>
@@ -81,33 +89,53 @@
                             </div>
                         </div>
                     </div>
+                    @{
+                        var feedbackUsers = ViewData["FeedbackUsers"] as SelectOption[]
+                        ?? Array.Empty<SelectOption>();
+                    }
 
-                    <!-- Row 3：提單人角色 / 提單人姓名 -->
                     <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
-                        <div class="col">
-                            <div class="row g-2 align-items-center">
-                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">提單人角色：</label>
-                                <div class="col-12 col-sm-8">
-                                    <input type="text"
-                                           class="form-control"
-                                           name="@nameof(queryModel.SubmittedByRole)"
-                                           value="@queryModel.SubmittedByRole" />
-                                </div>
-                            </div>
-                        </div>
 
+                        <!-- 提單人姓名 -->
                         <div class="col">
                             <div class="row g-2 align-items-center">
-                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">提單人姓名：</label>
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    提單人姓名：
+                                </label>
                                 <div class="col-12 col-sm-8">
+                                    <datalist id="feedbackUsersList">
+                                        @foreach (var user in feedbackUsers)
+                                        {
+                                            <option value="@user.OptionValue"></option>
+                                        }
+                                    </datalist>
                                     <input type="text"
                                            class="form-control"
+                                           list="feedbackUsersList"
                                            name="@nameof(queryModel.SubmittedByName)"
                                            value="@queryModel.SubmittedByName" />
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 主旨／內文／回覆內容 -->
+                        <div class="col">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">
+                                    主旨／內文／回覆內容：
+                                </label>
+                                <div class="col-12 col-sm-8">
+                                    <input type="text"
+                                           class="form-control"
+                                           placeholder="全文檢索"
+                                           name="@nameof(queryModel.QuestionContent)"
+                                           value="@queryModel.QuestionContent" />
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
+
 
                     <!-- Row 4：提單日期 / 結案日期 -->
                     <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
@@ -221,10 +249,13 @@
                             <div class="row g-2 align-items-center">
                                 <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">狀態：</label>
                                 <div class="col-12 col-sm-8">
-                                    <input type="text"
-                                           class="form-control"
-                                           name="@nameof(queryModel.Status)"
-                                           value="@queryModel.Status" />
+                    
+                                    <select class="form-select" name="@nameof(queryModel.Status)">
+                                        <option value="">全部</option>
+                                        <option value="待回覆" selected="@(queryModel.Status == "待回覆")">待回覆</option>
+                                        <option value="處裡中" selected="@(queryModel.Status == "處裡中")">處裡中</option>
+                                        <option value="已結案" selected="@(queryModel.Status == "已結案")">已結案</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -232,29 +263,9 @@
 
                     <!-- Row 6：提問內容 / 回覆內容 -->
                     <div class="row mb-3 g-3 row-cols-1 row-cols-md-2 align-items-center">
-                        <div class="col">
-                            <div class="row g-2 align-items-center">
-                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">提問內容：</label>
-                                <div class="col-12 col-sm-8">
-                                    <input type="text"
-                                           class="form-control"
-                                           name="@nameof(queryModel.QuestionContent)"
-                                           value="@queryModel.QuestionContent" />
-                                </div>
-                            </div>
-                        </div>
+                 
 
-                        <div class="col">
-                            <div class="row g-2 align-items-center">
-                                <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">回覆內容：</label>
-                                <div class="col-12 col-sm-8">
-                                    <input type="text"
-                                           class="form-control"
-                                           name="@nameof(queryModel.ResponseContent)"
-                                           value="@queryModel.ResponseContent" />
-                                </div>
-                            </div>
-                        </div>
+                       
                     </div>
 
 
@@ -405,13 +416,13 @@
                                             檢視
                                         </a>
                                     </li>
-                                    <li>
+                                   @* <li>
                                         <a class="dropdown-item detail"
                                            target="_blank"
                                            href="@Url.Action("Edit", "Feedback", new { id = feedbackId })">
                                             編輯
                                         </a>
-                                    </li>
+                                    </li>*@
                                     <li>
                                         <a class="dropdown-item detail text-danger"
                                            target="_blank"

@@ -34,7 +34,7 @@ public class Feedback
     public string SubmittedOrg { get; set; } = null!;
 
 
-    [Display(Name = "緊急程度")]
+    [Display(Name = "急迫性")]
     public string Urgency { get; set; } = null!;
 
 

@@ -9,8 +9,8 @@
     allRoles = allRoles.OrderBy(s => s.RoleGroup).ToList();
     int total = allRoles.Count;// 所有角色總數
     var half = (int)Math.Ceiling(allRoles.Count / 2.0);
-    var leftRoles = allRoles.Take(half).ToList();
-    var rightRoles = allRoles.Skip(half).ToList();
+    var leftRoles = allRoles.Where(s => s.RoleGroup == "產品模組").ToList();
+    var rightRoles = allRoles.Where(s => s.RoleGroup != "產品模組").ToList();
     int roleIndex = 0;
 
     var queryModel = QueryableExtensions.GetSessionQueryModel<AccountModel>(Context);
@@ -139,6 +139,11 @@
                             <a id="create_btn" href="@Url.Action("Create")"
                                class="btn2 btn-success mt-2">
                                 <i class="fas fa-user-plus"></i>&ensp;建立帳號
+                            </a>
+
+                            <a id="create_btn" href="@Url.Action("CreateRole")"
+                               class="btn2 btn-info mt-2">
+                                <i class="fas fa-users"></i>&ensp;產品角色
                             </a>
 
                         </div>

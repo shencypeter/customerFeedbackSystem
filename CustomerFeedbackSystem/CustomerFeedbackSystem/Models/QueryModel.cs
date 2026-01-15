@@ -6,7 +6,8 @@ namespace CustomerFeedbackSystem.Models
     {
         public int? ItemNo { get; set;  } = default(int?);
         public string? FeedbackNo { get; set; }
-        public string? Company { get; set; } // 公司別 三趨/甲方
+
+        public string? AppGroup { get; set; } 
         public string OrgName { get; set; } // 提單人所屬單位
         public string? SubmittedByRole { get; set; } // 提單人角色
 

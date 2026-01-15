@@ -779,6 +779,56 @@ namespace CustomerFeedbackSystem.Controllers
         }
 
 
+        /// <summary>
+        /// 功能模組
+        /// </summary>
+        /// <returns></returns>
+        protected SelectOption[] AppFunctionGroup()
+        {
+            var users = _context.Roles.Where(n => n.RoleGroup=="產品模組")
+                .Select(f => f.RoleName)
+                .Distinct()
+                .AsEnumerable() // switch to in-memory for culture-aware sorting
+                .OrderBy(
+                    n => n,
+                    Comparer<string>.Create((x, y) =>
+                        comparer.Compare(x, y, CompareOptions.StringSort))
+                )
+                .Select(n => new SelectOption
+                {
+                    OptionValue = n,
+                    OptionText = n
+                })
+                .ToArray();
+
+            return users;
+        }
+
+        /// <summary>
+        /// 填單人
+        /// </summary>
+        /// <returns></returns>
+        protected SelectOption[] FeedbackUsers()
+        {
+            var users = _context.Feedbacks
+                .Select(f => f.SubmittedByName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct()
+                .AsEnumerable() // switch to in-memory for culture-aware sorting
+                .OrderBy(
+                    n => n,
+                    Comparer<string>.Create((x, y) =>
+                        comparer.Compare(x, y, CompareOptions.StringSort))
+                )
+                .Select(n => new SelectOption
+                {
+                    OptionValue = n,
+                    OptionText = n
+                })
+                .ToArray();
+
+            return users;
+        }
 
         protected SelectOption[] DocAuthors()
         {

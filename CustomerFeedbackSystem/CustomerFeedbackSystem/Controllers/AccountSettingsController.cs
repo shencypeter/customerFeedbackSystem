@@ -70,6 +70,34 @@ namespace CustomerFeedbackSystem.Controllers
             return await LoadPage(queryModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CreateRole()
+        {
+            var accountModel = new CreateUser
+            {
+                CreatedAt = DateTime.Now,
+            };
+
+
+            var appRoles = await GetRoles();
+
+            appRoles.RemoveAll(s => s.RoleGroup != "產品模組");
+
+            foreach (var role in appRoles)
+            {
+                var people = _context.UserRoles.Count(s => s.RoleId == role.Id);
+                role.RoleName = $" {role.RoleName} | {people}人";
+
+
+            }
+
+
+            // 載入角色List
+            ViewData["AllRoles"] = appRoles;
+
+            return View(accountModel);
+        }
+
         /// <summary>
         /// 文件管制查詢頁面送出查詢
         /// </summary>

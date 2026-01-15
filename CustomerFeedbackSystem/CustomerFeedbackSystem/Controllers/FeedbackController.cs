@@ -33,6 +33,11 @@ namespace CustomerFeedbackSystem.Controllers
             { "FeedbackId", "序號" },
             // 單據識別
             { "FeedbackNo", "提問單文件號" },
+                      // 內容
+            { "Subject", "主旨" },
+            //{ "Content", "內容" },
+            //{ "ReplyContent", "回覆內容" },
+
 
             // 提問者資訊
             { "SubmittedByName", "填表人" },
@@ -52,11 +57,7 @@ namespace CustomerFeedbackSystem.Controllers
             { "Urgency", "急迫性" },
             { "Status", "狀態" },
 
-            // 內容
-            { "Subject", "項次" },
-            { "Content", "內容" },
-            //{ "ReplyContent", "回覆內容" },
-
+  
             // 系統輔助
             //{ "HasAttachment", "附件列表" }
         };
@@ -89,6 +90,9 @@ namespace CustomerFeedbackSystem.Controllers
 
             // 過濾文字
             QueryableExtensions.TrimStringProperties(queryModel);
+
+
+
 
             // 儲存查詢model到session中
             QueryableExtensions.SetSessionQueryModel(HttpContext, queryModel);
@@ -578,7 +582,8 @@ namespace CustomerFeedbackSystem.Controllers
             // Pass data to ViewData
             ViewData["totalCount"] = totalCount;
             ViewData["tableHeaders"] = TableHeaders;
-
+            ViewData["FeedbackUsers"] = FeedbackUsers();
+            ViewData["AppGroup"] = AppFunctionGroup();
             return View(result);
         }
 
@@ -611,10 +616,10 @@ namespace CustomerFeedbackSystem.Controllers
                 parameters.Add("FeedbackNo", $"%{queryModel.FeedbackNo.Trim()}%");
             }
 
-            if (!string.IsNullOrWhiteSpace(queryModel.Company))
+            if (!string.IsNullOrWhiteSpace(queryModel.AppGroup))
             {
                 whereClauses.Add("company = @Company");
-                parameters.Add("Company", queryModel.Company.Trim());
+                parameters.Add("Company", queryModel.AppGroup.Trim());
             }
 
             if (!string.IsNullOrWhiteSpace(queryModel.OrgName))
@@ -624,15 +629,9 @@ namespace CustomerFeedbackSystem.Controllers
                 parameters.Add("OrgName", $"%{queryModel.OrgName.Trim()}%");
             }
 
-            if (!string.IsNullOrWhiteSpace(queryModel.SubmittedByRole))
-            {
-                whereClauses.Add("submitted_by_role = @SubmittedByRole");
-                parameters.Add("SubmittedByRole", queryModel.SubmittedByRole.Trim());
-            }
-
             if (!string.IsNullOrWhiteSpace(queryModel.SubmittedByName))
             {
-                whereClauses.Add("submitted_by_name LIKE @SubmittedByName");
+                whereClauses.Add("submittedByName LIKE @SubmittedByName");
                 parameters.Add("SubmittedByName", $"%{queryModel.SubmittedByName.Trim()}%");
             }
 
@@ -665,21 +664,6 @@ namespace CustomerFeedbackSystem.Controllers
                 }
             }
 
-            // Keywords
-            if (!string.IsNullOrWhiteSpace(queryModel.QuestionContent))
-            {
-                // assuming the column is question_content (adjust if yours differs)
-                whereClauses.Add("Content LIKE @QuestionContent");
-                parameters.Add("QuestionContent", $"%{queryModel.QuestionContent.Trim()}%");
-            }
-
-            //need to join replycontent first
-            if (false && !string.IsNullOrWhiteSpace(queryModel.ResponseContent))
-            {
-                // assuming the column is response_content (adjust if yours differs)
-                whereClauses.Add("Content LIKE @ResponseContent");
-                parameters.Add("ResponseContent", $"%{queryModel.ResponseContent.Trim()}%");
-            }
 
             // ========= Date ranges (inclusive start, exclusive end+1day) =========
             // Note: "parse the datetime value" — if these are already DateTime?, we still normalize to Date.
@@ -713,11 +697,33 @@ namespace CustomerFeedbackSystem.Controllers
                 parameters.Add("ClosedDateEndExclusive", endExclusive);
             }
 
+          
+            // ========= Keyword OR block =========
+            if (!string.IsNullOrWhiteSpace(queryModel.QuestionContent))
+            {
+                var keywordClause = @"
+                (
+                    Content LIKE @QuestionContent
+                    OR Subject LIKE @QuestionContent
+                    OR EXISTS (
+                        SELECT 1
+                        FROM FeedbackResponse fr
+                        WHERE fr.feedbackid = Feedback.feedbackid
+                          AND fr.Content LIKE @QuestionContent
+                    )
+                )";
+
+                whereClauses.Add(keywordClause);
+                parameters.Add("QuestionContent", $"%{queryModel.QuestionContent.Trim()}%");
+            }
+
             // ========= Apply =========
             if (whereClauses.Any())
             {
                 sqlQuery += " AND " + string.Join(" AND ", whereClauses);
             }
+
+
         }
 
 

@@ -7,8 +7,8 @@
     var allRoles = ViewData["AllRoles"] as List<Role>;
     int total = allRoles.Count;// 所有角色總數
     var half = (int)Math.Ceiling(allRoles.Count / 2.0);
-    var leftRoles = allRoles.Take(half).ToList();
-    var rightRoles = allRoles.Skip(half).ToList();
+    var leftRoles = allRoles.Where(s => s.RoleGroup == "產品模組").ToList();
+    var rightRoles = allRoles.Where(s => s.RoleGroup != "產品模組").ToList();
     int roleIndex = 0;
 }
 
