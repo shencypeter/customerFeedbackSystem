@@ -611,7 +611,7 @@ namespace CustomerFeedbackSystem.Controllers
                 parameters.Add("FeedbackNo", $"%{queryModel.FeedbackNo.Trim()}%");
             }
 
-            if (!string.IsNullOrWhiteSpace(queryModel.AppGroup))
+            if (!string.IsNullOrWhiteSpace(queryModel.AppGroup) && queryModel.AppGroup != "全部")
             {
                 whereClauses.Add("company = @Company");
                 parameters.Add("Company", queryModel.AppGroup.Trim());

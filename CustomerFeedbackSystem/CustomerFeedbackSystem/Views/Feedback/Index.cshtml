@@ -66,7 +66,7 @@
                                 <label class="col-12 col-sm-4 col-form-label text-sm-end text-start">功能組別：</label>
                                 <div class="col-12 col-sm-8">
                                     <select id="appGroupList" class="form-select" name="@nameof(queryModel.AppGroup)">
-                                        <option>全部</option>
+                                        <option value="">全部</option>
                                         @foreach (var module in appGroup)
                                         {
                                             <option value="@module.OptionValue">@module.OptionValue</option>
