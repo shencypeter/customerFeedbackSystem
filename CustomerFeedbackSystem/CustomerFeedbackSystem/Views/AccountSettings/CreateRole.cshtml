@@ -25,16 +25,14 @@
         <!-- ========================= -->
         <!-- ③ Add new app group      -->
         <!-- ========================= -->
-        <form method="post"
-              asp-action="CreateGroup"
-              asp-controller="AccountSettings">
-
+        <form method="post">
             @Html.AntiForgeryToken()
 
             <div class="row my-3 align-items-center">
                 <div class="col-md-2 col-form-label text-md-end text-start">
                     <strong>新增群組</strong>
                 </div>
+
                 <div class="col-md-6">
                     <input type="text"
                            name="NewGroupName"
@@ -42,23 +40,24 @@
                            placeholder="輸入新的應用群組名稱"
                            required />
                 </div>
+
                 <div class="col-md-4 text-start mt-2 mt-md-0">
                     <button type="submit"
-                            class="btn2 btn-primary">
+                            class="btn2 btn-primary"
+                            formmethod="post"
+                            formaction="@Url.Action("CreateGroup","Feedback")">
                         <i class="fas fa-plus-circle"></i>&ensp;新增群組
                     </button>
                 </div>
             </div>
         </form>
 
+
         <hr />
         <!-- ========================= -->
         <!-- ① Rename existing groups -->
         <!-- ========================= -->
-        <form method="post"
-              asp-action="RenameGroups"
-              asp-controller="AccountSettings">
-
+        <form method="post">
             @Html.AntiForgeryToken()
 
             <div class="row my-3">
@@ -69,18 +68,17 @@
 
                     @foreach (var group in rolesByGroup)
                     {
-                            foreach(var item in group)
-                            {
-                                var groupName = item.RoleName.Split('|')[0];
-                                <div class="input-group mb-2">
+                        foreach (var item in group)
+                        {
+                            var groupName = item.RoleName.Split('|')[0];
+                            <div class="input-group mb-2">
                                 <span class="input-group-text">@groupName</span>
-                                    <input type="text"
+                                <input type="text"
                                        name="GroupRename[@groupName]"
-                                           class="form-control"
-                                       placeholder="重新命名為..." />
-                                </div>
-                            }
-                
+                                       class="form-control"
+                                       placeholder="重新命名為...(保持空白維持現狀)" />
+                            </div>
+                        }
                     }
 
                 </div>
@@ -89,7 +87,9 @@
             <div class="row my-3">
                 <div class="col-12 text-center">
                     <button type="submit"
-                            class="btn2 btn-success col-6 col-md-3">
+                            class="btn2 btn-success col-6 col-md-3"
+                            formmethod="post"
+                            formaction="@Url.Action("RenameGroup", "Feedback")">
                         <i class="fas fa-save"></i>&ensp;儲存重新命名
                     </button>
                 </div>
@@ -101,45 +101,33 @@
         <!-- ========================= -->
         <!-- ② Delete checked roles   -->
         <!-- ========================= -->
-        <form method="post"
-              asp-action="DeleteRoles"
-              asp-controller="AccountSettings">
-
+        <form method="post">
             @Html.AntiForgeryToken()
 
             <div class="row my-3">
                 <div class="col-md-2 col-form-label text-md-end text-start">
-                    <strong>角色管理</strong>
+                    <strong>刪除群組</strong>
                 </div>
-                <div class="col-md-10">
 
+                <div class="col-md-10">
                     @foreach (var group in rolesByGroup)
                     {
-                        <div class="mb-3">
-                            <div class="fw-bold mb-1">【@group.Key】</div>
-
-                            <div class="row">
-                                @foreach (var role in group)
-                                {
-                                    string checkboxId = $"role{roleIndex++}";
-
-                                    <div class="col-md-6">
-                                        <div class="form-check text-start">
-                                            <input class="form-check-input"
-                                                   type="checkbox"
-                                                   name="RoleNames"
-                                                   value="@role.RoleName"
-                                                   id="@checkboxId" />
-                                            <label class="form-check-label" for="@checkboxId">
-                                                @role.RoleName
-                                            </label>
-                                        </div>
-                                    </div>
-                                }
+                        foreach( var item in group)
+                        {
+                            var groupName = item.RoleName.Split('|')[0];
+                            <div class="form-check mb-2">
+                                <input class="form-check-input"
+                                        type="checkbox"
+                                        name="GroupNames[@groupName]"
+                                        value="@item.RoleName"
+                                        id="del_@item.RoleName" />
+                                <label class="form-check-label" for="del_@item.RoleName">
+                                    @item.RoleName
+                                </label>
                             </div>
-                        </div>
+                        }
+                   
                     }
-
                 </div>
             </div>
 
@@ -147,8 +135,10 @@
                 <div class="col-12 text-center">
                     <button type="submit"
                             class="btn2 btn-danger col-6 col-md-3"
-                            onclick="return confirm('確定要刪除已勾選的項目？此動作無法復原。');">
-                        <i class="fas fa-trash-alt"></i>&ensp;刪除已勾選項目
+                            formmethod="post"
+                            formaction="@Url.Action("DeleteGroup", "Feedback")"
+                            onclick="return confirm('確認刪除角色並將人員移出群組?');">
+                        <i class="fas fa-trash-alt"></i>&ensp;刪除群組
                     </button>
                 </div>
             </div>

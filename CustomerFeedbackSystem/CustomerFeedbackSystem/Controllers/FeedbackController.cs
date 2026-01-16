@@ -426,6 +426,80 @@ namespace CustomerFeedbackSystem.Controllers
         }
 
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateGroup(string NewGroupName)
+        {
+            if (string.IsNullOrWhiteSpace(NewGroupName))
+                return RedirectToAction(nameof(Index));
+
+            // No DB change yet — groups exist by convention
+            // Optionally validate uniqueness here
+
+
+            TempData["_JSShowSuccess"] = $"已建立群組：{NewGroupName}";
+            return RedirectToAction(nameof(Index));
+
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RenameGroup(
+    Dictionary<string, string> GroupRename)
+        {
+            if (GroupRename == null || !GroupRename.Any())
+                return RedirectToAction(nameof(Index));
+
+            var roles = await _context.Roles.ToListAsync();
+
+            foreach (var (oldGroup, newGroup) in GroupRename)
+            {
+                if (string.IsNullOrWhiteSpace(newGroup))
+                    continue;
+
+                foreach (var role in roles.Where(r => r.RoleName.StartsWith(oldGroup + "|")))
+                {
+                    var suffix = role.RoleName.Substring(oldGroup.Length + 1);
+                    role.RoleName = $"{newGroup}|{suffix}";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+
+            TempData["_JSShowSuccess"] = "群組重新命名完成";
+            return RedirectToAction(nameof(Index));
+
+
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteGroup(List<string> GroupNames)
+        {
+            if (GroupNames == null || !GroupNames.Any())
+                return RedirectToAction(nameof(Index));
+
+            var roles = await _context.Roles.Where(s=>s.RoleGroup=="工程模組").ToListAsync();
+
+            foreach (var group in GroupNames)
+            {
+                foreach (var role in roles.Where(r => r.RoleName.StartsWith(group)))
+                {
+                    // Strip group prefix
+                    role.RoleName = role.RoleName.Substring(group.Length + 1);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["_JSShowSuccess"] = "群組已刪除（角色保留）";
+            return RedirectToAction(nameof(Index));
+        }
+
+
+
         /// <summary>
         /// 編輯提問 (不是回復)
         /// </summary>
