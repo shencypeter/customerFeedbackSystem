@@ -1,7 +1,5 @@
 ﻿using CustomerFeedbackSystem.Models;
 using Dapper;
-using DocumentFormat.OpenXml.InkML;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +14,6 @@ namespace CustomerFeedbackSystem.Controllers
     [Authorize(Roles = FeedbackRoleStrings.Anyone)]
     public class FeedbackController(DocControlContext context, IWebHostEnvironment hostingEnvironment, IConfiguration configuration) : BaseController(context, hostingEnvironment)
     {
-
         /// <summary>
         /// 預設排序依據
         /// </summary>
@@ -428,75 +425,113 @@ namespace CustomerFeedbackSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateGroup(string NewGroupName)
+        public async Task<IActionResult> CreateGroup(string RoleName)
         {
-            if (string.IsNullOrWhiteSpace(NewGroupName))
-                return RedirectToAction(nameof(Index));
+            if (string.IsNullOrWhiteSpace(RoleName))
+            {
 
-            // No DB change yet — groups exist by convention
-            // Optionally validate uniqueness here
+                TempData["_JSShowSuccess"] = $"未輸入角色名稱!";
+                return DismissModal("模組名稱不可為空白");
+            }
 
 
-            TempData["_JSShowSuccess"] = $"已建立群組：{NewGroupName}";
+            var checkConflict = await _context.Roles.FirstOrDefaultAsync
+                (r => r.RoleName == RoleName && r.RoleGroup == "產品模組");
+
+            if(checkConflict != null)
+            {
+
+                TempData["_JSShowSuccess"] = $"{RoleName} 已存在";
+                return DismissModal(RoleName + "已經存在!");
+            }
+
+
+            _context.Roles.Add(new Role
+            {
+                RoleName = RoleName,
+                RoleGroup = "產品模組"
+            });
+
+            await _context.SaveChangesAsync();
+
+            TempData["_JSShowSuccess"] = $"已建立群組：{RoleName}";
             return RedirectToAction(nameof(Index));
 
         }
 
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RenameGroup(
-    Dictionary<string, string> GroupRename)
+    Dictionary<string, string> groupRename)
         {
-            if (GroupRename == null || !GroupRename.Any())
-                return RedirectToAction(nameof(Index));
+            if (groupRename == null || groupRename.Count == 0)
+                return DismissModal("群組名稱皆維持現狀");
 
-            var roles = await _context.Roles.ToListAsync();
+            // 只允許調整「產品模組」底下的角色
+            var roles = await _context.Roles
+                .Where(r => r.RoleGroup == "產品模組")
+                .ToListAsync();
 
-            foreach (var (oldGroup, newGroup) in GroupRename)
+            bool hasChanges = false;
+
+            foreach (var (currentName, newName) in groupRename)
             {
-                if (string.IsNullOrWhiteSpace(newGroup))
+                if (string.IsNullOrWhiteSpace(newName))
                     continue;
 
-                foreach (var role in roles.Where(r => r.RoleName.StartsWith(oldGroup + "|")))
+                var matchedRoles = roles
+                    .Where(r => r.RoleName.StartsWith(currentName.Trim()))
+                    .ToList();
+
+                foreach (var role in matchedRoles)
                 {
-                    var suffix = role.RoleName.Substring(oldGroup.Length + 1);
-                    role.RoleName = $"{newGroup}|{suffix}";
+                    role.RoleName = newName.Trim();
+                    hasChanges = true;
                 }
             }
 
+            if (!hasChanges)
+                return DismissModal("群組名稱皆維持現狀");
+
             await _context.SaveChangesAsync();
 
-
-            TempData["_JSShowSuccess"] = "群組重新命名完成";
-            return RedirectToAction(nameof(Index));
-
-
+            return DismissModal("群組重新命名完成");
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteGroup(List<string> GroupNames)
+        public async Task<IActionResult> DeleteGroup(Dictionary<string, string> groupName)
         {
-            if (GroupNames == null || !GroupNames.Any())
-                return RedirectToAction(nameof(Index));
+            if (groupName == null || groupName.Count == 0)
+                return DismissModal("未選擇刪除項目");
 
-            var roles = await _context.Roles.Where(s=>s.RoleGroup=="工程模組").ToListAsync();
+            // 取得被勾選的 RoleName（value 有東西代表被選）
+            var selectedRoleNames = groupName
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                .Select(kv => kv.Key.Trim())
+                .ToList();
 
-            foreach (var group in GroupNames)
-            {
-                foreach (var role in roles.Where(r => r.RoleName.StartsWith(group)))
-                {
-                    // Strip group prefix
-                    role.RoleName = role.RoleName.Substring(group.Length + 1);
-                }
-            }
+            if (selectedRoleNames.Count == 0)
+                return DismissModal("未選擇刪除項目");
 
+            // 只能刪除「產品模組」底下的角色
+            var rolesToDelete = await _context.Roles
+                .Where(r => r.RoleGroup == "產品模組"
+                         && selectedRoleNames.Contains(r.RoleName))
+                .ToListAsync();
+
+            if (rolesToDelete.Count == 0)
+                return DismissModal("群組名稱皆維持現狀");
+
+            _context.Roles.RemoveRange(rolesToDelete);
             await _context.SaveChangesAsync();
 
-            TempData["_JSShowSuccess"] = "群組已刪除（角色保留）";
-            return RedirectToAction(nameof(Index));
+            return DismissModal(
+                "已刪除選擇的模組: " + string.Join(", ", rolesToDelete.Select(r => r.RoleName))
+            );
         }
+
 
 
 
@@ -572,6 +607,8 @@ namespace CustomerFeedbackSystem.Controllers
 
             return View(feedback);
         }
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Route("[controller]/DeleteConfirm/{id:int}")]
