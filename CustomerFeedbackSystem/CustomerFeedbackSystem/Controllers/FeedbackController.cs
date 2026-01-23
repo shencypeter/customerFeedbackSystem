@@ -1,4 +1,6 @@
-﻿using CustomerFeedbackSystem.Models;
+﻿using System.Net;
+using System.Net.Mail;
+using CustomerFeedbackSystem.Models;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -254,10 +256,33 @@ namespace CustomerFeedbackSystem.Controllers
                 attachments
             );
 
+            // --------------------
+            // 📧 Notify responders
+            // --------------------
+            var handlerEmails = Array.Empty<string>();
+
+            var link = $"{configuration["Site:BaseUrl"]}/Feedback/Details/{feedback.FeedbackId}";
+
+            await SendFeedbackMailAsync(
+                handlerEmails,
+                $"【新提問】{feedback.Subject} ({feedback.FeedbackNo})",
+                $@"
+        <p>有一筆新的提問單已建立。</p>
+        <p>
+            <strong>{feedback.Subject}</strong><br/>
+            提問人：{feedback.SubmittedByName}<br/>
+            單位：{feedback.SubmittedOrg}
+        </p>
+        <p>
+            <a href='{link}'>前往提問單</a>
+        </p>
+    "
+            );
+
             return DismissModal("提問單新增成功");
         }
 
-       
+
 
         /// <summary>
         /// 🔗下載附件
@@ -368,11 +393,26 @@ namespace CustomerFeedbackSystem.Controllers
                 responseId: response.ResponseId,
                 uploadedByName: response.ResponderName
             );
+            var link = $"{configuration["Site:BaseUrl"]}/Feedback/Details/{feedback.FeedbackId}";
 
+                    await SendFeedbackMailAsync(
+                        new[] { feedback.SubmittedByEmail },
+                        $"【回覆通知】{feedback.Subject} ({feedback.FeedbackNo})",
+                        $@"
+                <p>您的提問單有新的回覆。</p>
+                <p>
+                    回覆者：{response.ResponderName}<br/>
+                    目前狀態：{feedback.Status}
+                </p>
+                <p>
+                    <a href='{link}'>查看完整內容</a>
+                </p>
+            "
+                    );
             return DismissModal("回覆已送出");
         }
 
-       
+
         /// <summary>
         /// 儲存提問單的附件
         /// </summary>
@@ -429,7 +469,6 @@ namespace CustomerFeedbackSystem.Controllers
         {
             if (string.IsNullOrWhiteSpace(RoleName))
             {
-
                 TempData["_JSShowSuccess"] = $"未輸入角色名稱!";
                 return DismissModal("模組名稱不可為空白");
             }
@@ -438,7 +477,7 @@ namespace CustomerFeedbackSystem.Controllers
             var checkConflict = await _context.Roles.FirstOrDefaultAsync
                 (r => r.RoleName == RoleName && r.RoleGroup == "產品模組");
 
-            if(checkConflict != null)
+            if (checkConflict != null)
             {
 
                 TempData["_JSShowSuccess"] = $"{RoleName} 已存在";
@@ -468,7 +507,7 @@ namespace CustomerFeedbackSystem.Controllers
                 return DismissModal("群組名稱皆維持現狀");
 
             // 只允許調整「產品模組」底下的角色
-            var roles = await _context.Roles
+            var rolesEdited = await _context.Roles
                 .Where(r => r.RoleGroup == "產品模組")
                 .ToListAsync();
 
@@ -476,17 +515,18 @@ namespace CustomerFeedbackSystem.Controllers
 
             foreach (var (currentName, newName) in groupRename)
             {
-                if (string.IsNullOrWhiteSpace(newName))
-                    continue;
-
-                var matchedRoles = roles
-                    .Where(r => r.RoleName.StartsWith(currentName.Trim()))
-                    .ToList();
-
-                foreach (var role in matchedRoles)
+                //edited
+                if (!string.IsNullOrWhiteSpace(newName))
                 {
-                    role.RoleName = newName.Trim();
-                    hasChanges = true;
+                    var matchedRoles = rolesEdited
+                                    .Where(r => r.RoleName.StartsWith(currentName.Trim()))
+                                    .ToList();
+
+                    foreach (var role in matchedRoles)
+                    {
+                        role.RoleName = newName.Trim();
+                        hasChanges = true;
+                    }
                 }
             }
 
@@ -507,22 +547,28 @@ namespace CustomerFeedbackSystem.Controllers
                 return DismissModal("未選擇刪除項目");
 
             // 取得被勾選的 RoleName（value 有東西代表被選）
-            var selectedRoleNames = groupName
+            var checkedForDeletion = groupName
                 .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
                 .Select(kv => kv.Key.Trim())
                 .ToList();
 
-            if (selectedRoleNames.Count == 0)
+            if (checkedForDeletion.Count == 0)
                 return DismissModal("未選擇刪除項目");
 
             // 只能刪除「產品模組」底下的角色
             var rolesToDelete = await _context.Roles
                 .Where(r => r.RoleGroup == "產品模組"
-                         && selectedRoleNames.Contains(r.RoleName))
+                         && checkedForDeletion.Contains(r.RoleName))
                 .ToListAsync();
 
             if (rolesToDelete.Count == 0)
                 return DismissModal("群組名稱皆維持現狀");
+
+            //解除此 role 與使用者的關聯
+            var revokeUserRoles = _context.UserRoles
+                    .Where(ur => rolesToDelete.Select(r => r.Id).Contains(ur.RoleId));
+
+            _context.UserRoles.RemoveRange(revokeUserRoles);
 
             _context.Roles.RemoveRange(rolesToDelete);
             await _context.SaveChangesAsync();
@@ -803,7 +849,7 @@ namespace CustomerFeedbackSystem.Controllers
                 parameters.Add("ClosedDateEndExclusive", endExclusive);
             }
 
-          
+
             // ========= Keyword OR block =========
             if (!string.IsNullOrWhiteSpace(queryModel.QuestionContent))
             {
@@ -830,6 +876,73 @@ namespace CustomerFeedbackSystem.Controllers
             }
 
 
+        }
+
+
+        /// <summary>
+        /// 通知信件發送
+        /// </summary>
+        /// <param name="to"></param>
+        /// <param name="subject"></param>
+        /// <param name="htmlBody"></param>
+        /// <returns></returns>
+        private async Task SendFeedbackMailAsync(
+            IEnumerable<string> to,
+            string subject,
+            string htmlBody
+        )
+        {
+            var smtpSection = configuration.GetSection("Smtp");
+            var host = smtpSection["Host"];
+
+            // Hard stop if SMTP isn't configured (dev-safe)
+            if (string.IsNullOrWhiteSpace(host))
+                return;
+
+            var port = smtpSection.GetValue<int>("Port", 25);
+            var useSsl = smtpSection.GetValue<bool>("UseSsl", false);
+            var from = smtpSection["From"] ?? "noreply@localhost";
+
+            using var message = new MailMessage
+            {
+                From = new MailAddress(from),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true
+            };
+            if (true)
+            {
+                //先鎖死收件人
+                message.To.Add("paladin@3probe.com.tw");
+                message.To.Add("shencypeter@gmail.com");
+            }
+            else
+            {
+                //現階段不要真的發出去
+                foreach (var addr in to.Where(x => !string.IsNullOrWhiteSpace(x)))
+                {
+                    message.To.Add(addr);
+                }
+
+            }
+
+            if (message.To.Count == 0)
+                return;
+
+            using var client = new SmtpClient(host, port)
+            {
+                EnableSsl = useSsl
+            };
+
+            var user = smtpSection["Username"];
+            var pass = smtpSection["Password"];
+
+            if (!string.IsNullOrWhiteSpace(user))
+            {
+                client.Credentials = new NetworkCredential(user, pass);
+            }
+
+            await client.SendMailAsync(message);
         }
 
     }

@@ -201,6 +201,20 @@
                 </div>
             </div>
 
+            <div class="row mb-4">
+                <label class="col-md-2 col-form-label text-md-end text-start">
+                    <strong>處理狀態</strong>
+                </label>
+
+                <div class="col-md-10">
+                    <select class="form-select w-100">
+                        <option disabled >新建 (尚未回覆)</option>
+                        <option disabled selected=@(Model.Replies.Any()? "selected":null) >處理中 (有新的回覆內容 / 結案後有新增訊息)</option>
+                        <option disabled selected=@(Model.Feedback.ClosedDate.HasValue ? "selected" : null)>已結案 (由客戶決定問題是否已解決)</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- 回覆附件 -->
             <div class="row mb-4">
                 <label class="col-md-2 col-form-label text-md-end text-start">

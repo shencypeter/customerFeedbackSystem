@@ -57,7 +57,7 @@
         <!-- ========================= -->
         <!-- ① Rename existing groups -->
         <!-- ========================= -->
-        <form method="post">
+        <form method="post" >
             @Html.AntiForgeryToken()
 
             <div class="row my-3">
@@ -101,7 +101,7 @@
         <!-- ========================= -->
         <!-- ② Delete checked roles   -->
         <!-- ========================= -->
-        <form method="post">
+        <form method="post" onsubmit="return confirm('群組與內部相關人員將被移出, 請確認?');">
             @Html.AntiForgeryToken()
 
             <div class="row my-3">
@@ -137,7 +137,7 @@
                             class="btn2 btn-danger col-6 col-md-3"
                             formmethod="post"
                             formaction="@Url.Action("DeleteGroup", "Feedback")"
-                            onclick="return confirm('確認刪除角色並將人員移出群組?');">
+                     >
                         <i class="fas fa-trash-alt"></i>&ensp;刪除群組
                     </button>
                 </div>
