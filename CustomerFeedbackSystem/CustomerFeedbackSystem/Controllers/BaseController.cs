@@ -376,40 +376,49 @@ namespace CustomerFeedbackSystem.Controllers
             string stringDate = "";
             DateTime? turnOffDate = null;
 
-            // 取得關閉文件領用日期、訊息內容
-            var turnoff = _context.Bulletins.FirstOrDefault(b => b.Code == "turnoff_date");
-            var turnoff_content = _context.Bulletins.FirstOrDefault(b => b.Code == "turnoff_content");
-
-            // 是否為「管理預覽模式」？
-            bool isPreview = !string.IsNullOrEmpty(type) &&
-                             type.Equals("demo", StringComparison.OrdinalIgnoreCase) &&
-                             !string.IsNullOrEmpty(key) &&
-                             key == "vbuWad_Gyr5j25f" &&
-                             !string.IsNullOrEmpty(inDatetime) &&
-                             !string.IsNullOrEmpty(previewContent);
-
-            if (isPreview)
+            try
             {
-                // 預覽：使用網址帶入的內容
-                messages = previewContent!;// 訊息內容
-                stringDate = inDatetime ?? "2024-04-30";
-                ;// 關閉文件領用日期
-            }
-            else
-            {
-                // 一般模式：抓資料庫設定
-                messages = turnoff_content?.Value ?? string.Empty;// 訊息內容
-                stringDate = turnoff?.Value ?? "2024-04-30";
-            }
+                // 取得關閉文件領用日期、訊息內容
+                var turnoff = _context.Bulletins.FirstOrDefault(b => b != null && b.Code == "turnoff_date");
+                var turnoff_content = _context.Bulletins?.FirstOrDefault(b => b != null && b.Code != null && b.Code == "turnoff_content");
 
-            if (DateTime.TryParse(stringDate, out var dt))
-            {
+                // 是否為「管理預覽模式」？
+                bool isPreview = !string.IsNullOrEmpty(type) &&
+                                 type.Equals("demo", StringComparison.OrdinalIgnoreCase) &&
+                                 !string.IsNullOrEmpty(key) &&
+                                 key == "vbuWad_Gyr5j25f" &&
+                                 !string.IsNullOrEmpty(inDatetime) &&
+                                 !string.IsNullOrEmpty(previewContent);
+
+                if (isPreview)
+                {
+                    // 預覽：使用網址帶入的內容
+                    messages = previewContent!;// 訊息內容
+                    stringDate = inDatetime ?? "2024-04-30";
+                    ;// 關閉文件領用日期
+                }
+                else
+                {
+                    // 一般模式：抓資料庫設定
+                    messages = turnoff_content?.Value ?? string.Empty;// 訊息內容
+                    stringDate = turnoff?.Value ?? "2024-04-30";
+                }
+
+                if (DateTime.TryParse(stringDate, out var dt))
+                {
+                    turnOffDate = dt;// 關閉文件領用日期
+                }
+
                 turnOffDate = dt;// 關閉文件領用日期
+
+                return (messages, turnOffDate);
+            }
+            catch
+            {
+                return ("", null);
             }
 
-            turnOffDate = dt;// 關閉文件領用日期
-
-            return (messages, turnOffDate);
+          
         }
 
         public bool IsValidClaimDate(DateTime claimDate)

@@ -112,8 +112,10 @@
 
 @section PageScripts {
     <script nonce="@ViewBag.CspNonce">
-        $(document).ready(function () {
-            DeleteConfirmEventListener();
+        $(function () {
+            $('#deleteForm').on('submit', function () {
+                return confirm('是否確認將人員移出群組並刪除?');
+            });
         });
     </script>
 }

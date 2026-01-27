@@ -188,6 +188,16 @@ namespace CustomerFeedbackSystem.Controllers
         [Authorize(Roles = FunctionRoleStrings.提問者 + "," + AdminRoleStrings.系統管理者)]
         public IActionResult Create()
         {
+            var func = AppFunctionGroup().ToList();
+
+            //過濾權限
+            var roleMatch = func.Where(s => User.IsInRole(s.OptionText)).ToList();
+            ViewData["AppGroup"] = roleMatch;
+            ViewData["UserFunctions"] = roleMatch.ToList();
+
+            
+            
+
             return View(new Feedback
             {
                 SubmittedByName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name,
@@ -500,8 +510,7 @@ namespace CustomerFeedbackSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RenameGroup(
-    Dictionary<string, string> groupRename)
+        public async Task<IActionResult> RenameGroup(Dictionary<string, string> groupRename)
         {
             if (groupRename == null || groupRename.Count == 0)
                 return DismissModal("群組名稱皆維持現狀");
@@ -770,8 +779,8 @@ namespace CustomerFeedbackSystem.Controllers
 
             if (!string.IsNullOrWhiteSpace(queryModel.AppGroup) && queryModel.AppGroup != "全部")
             {
-                whereClauses.Add("company = @Company");
-                parameters.Add("Company", queryModel.AppGroup.Trim());
+                whereClauses.Add("SubmittedByRole = @AppGroup");
+                parameters.Add("AppGroup", queryModel.AppGroup.Trim());
             }
 
             if (!string.IsNullOrWhiteSpace(queryModel.OrgName))

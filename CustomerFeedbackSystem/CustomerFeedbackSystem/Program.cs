@@ -1,11 +1,12 @@
-﻿using CustomerFeedbackSystem.Models;
+﻿using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using CustomerFeedbackSystem.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace CustomerFeedbackSystem
 {
@@ -128,6 +129,7 @@ namespace CustomerFeedbackSystem
 
             if (!isDev)
             {
+
                 // 正式環境
 
                 // 處理例外
@@ -144,6 +146,9 @@ namespace CustomerFeedbackSystem
                 // 開發環境：顯示詳細錯誤頁
                 appWeb.UseDeveloperExceptionPage();
             }
+
+            //開發環境自動登入 可指定DB存在的帳號
+            //UseDevLogin(appWeb, isDev, "petershen");
 
             // === Clickjacking Protection（全站） ===
             appWeb.Use(async (context, next) =>
@@ -179,15 +184,18 @@ namespace CustomerFeedbackSystem
                     .Append($"script-src 'self' 'nonce-{nonce}' blob:  ;")
                     .Append("worker-src 'self' blob:  ;")
                     .Append("child-src 'self' blob:  ;") // child-src 已逐漸被 frame-src 取代，兩者都給
-                    .Append("frame-src 'self'  ;") // child-src 已逐漸被 frame-src 取代，兩者都給
-                    .Append($"style-src 'self'  ;")//'unsafe-inline''nonce-{nonce}';
+                    .Append("frame-src 'self'  ;")        // child-src 已逐漸被 frame-src 取代，兩者都給
+                    .Append("style-src 'self'  ;")
                     .Append("img-src 'self' data: blob:  ;")
                     .Append(isDev ? "font-src 'self'  ;" : "font-src 'self' data:  ;")
-                    .Append(isDev ? "connect-src 'self' ws: wss: http://localhost:* https://localhost:*  ;"
-                                  : "connect-src 'self'  ;")
+                    .Append(isDev
+                        ? "connect-src 'self' ws: wss: http://localhost:* https://localhost:*  ;"
+                        : "connect-src 'self'  ;")
+                    .Append("form-action 'self'  ;")      // ✅ 明確允許表單送回本站
                     .Append("object-src 'none'  ;")
                     .Append("base-uri 'self'  ;")
                     .Append("frame-ancestors 'self'  ;");
+
 
                 if (!isDev)
                 {
@@ -235,6 +243,65 @@ namespace CustomerFeedbackSystem
             // 執行web應用程式
             appWeb.Run();
 
+        }
+
+        /// <summary>
+        /// 開發自動登入 (會無法登出) for 本機zap掃描
+        /// </summary>
+        /// <param name="appWeb"></param>
+        /// <param name="isDev"></param>
+        /// <param name="userName"></param>
+        private static void UseDevLogin(WebApplication appWeb, bool isDev, string userName)
+        {
+            if (isDev)
+            {
+                //為 zap 建議一個永遠登入的狀態 (會無法登出)
+                appWeb.Use(async (context, next) =>
+                {
+                    if (!context.User.Identity?.IsAuthenticated ?? true)
+                    {
+                        using var scope = context.RequestServices.CreateScope();
+                        var db = scope.ServiceProvider.GetRequiredService<DocControlContext>();
+
+                        // 👤 預定使用者 (無法登出)
+                        var username = userName;
+
+                        var user = db.Users
+                            .FirstOrDefault(u => u.UserName == username && u.IsActive);
+
+                        if (user != null)
+                        {
+                            var userRoles = db.UserRoles
+                                .Where(ur => ur.UserId == user.Id)
+                                .Include(ur => ur.Role)
+                                .Select(ur => new { ur.Role.RoleName, ur.Role.RoleGroup })
+                                .ToList();
+
+                            var claims = new List<Claim>
+                            {
+                                new(ClaimTypes.Name, user.UserName),
+                                new("FullName", user.FullName),
+                                new("UserId", user.Id.ToString())
+                            };
+
+                            foreach (var r in userRoles.Select(r => r.RoleName))
+                                claims.Add(new Claim(ClaimTypes.Role, r));
+
+                            foreach (var g in userRoles.Select(r => r.RoleGroup).Distinct())
+                                claims.Add(new Claim("RoleGroup", g));
+
+                            var identity = new ClaimsIdentity(
+                                claims,
+                                CookieAuthenticationDefaults.AuthenticationScheme
+                            );
+
+                            context.User = new ClaimsPrincipal(identity);
+                        }
+                    }
+
+                    await next();
+                });
+            }
         }
 
         /*

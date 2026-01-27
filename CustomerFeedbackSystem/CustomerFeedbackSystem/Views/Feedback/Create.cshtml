@@ -3,6 +3,20 @@
 @{
     ViewData["Title"] = "我要提問";
     Layout = "_NoNavLayout";
+
+
+    // 角色
+    var allRoles = ViewData["AllRoles"] as List<Role> ?? new List<Role>() { };
+    allRoles = allRoles.OrderBy(s => s.RoleGroup).ToList();
+    int total = allRoles.Count;// 所有角色總數
+    var half = (int)Math.Ceiling(allRoles.Count / 2.0);
+    var leftRoles = allRoles.Where(s => s.RoleGroup == "產品模組").ToList();
+    var rightRoles = allRoles.Where(s => s.RoleGroup != "產品模組").ToList();
+    var funcGroup = ViewData["AppGroup"] as List<SelectOption> ?? new List<SelectOption> { };
+
+    var queryModel = QueryableExtensions.GetSessionQueryModel<AccountModel>(Context);
+    queryModel.OrderBy ??= "id";
+    queryModel.SortDir ??= "asc";
 }
 <style nonce="@ViewBag.CspNonce">
     .editor-wrapper.is-invalid .tox-tinymce {
@@ -25,7 +39,7 @@
         @Html.AntiForgeryToken()
 
         <!-- Snapshot fields (server-owned, round-trip only) -->
-        <input type="hidden" asp-for="SubmittedByRole" />
+
         <input type="hidden" asp-for="SubmittedByName" />
         <input type="hidden" asp-for="SubmittedByEmail" />
         <input type="hidden" asp-for="SubmittedOrg" />
@@ -58,11 +72,22 @@
                 </div>
 
                 <label class="col-md-2 col-form-label text-md-end text-start">
-                    <strong>@Html.DisplayNameFor(m => m.SubmittedOrg)：</strong>
+                    <strong>所屬系統：</strong>
                 </label>
                 <div class="col-md-4">
                     <div class="form-control-plaintext">
-                        @("單位待補")
+                        <select asp-for="SubmittedByRole" class="form-select">
+
+                            <option value="">-- 請選擇 --</option>
+
+                            @foreach (var item in funcGroup)
+                            {
+                                <option value="@item.OptionValue">@item.OptionText</option>
+                            }
+                            
+
+                   
+                        </select>
                     </div>
                 </div>
             </div>
